@@ -4,10 +4,13 @@ document.onkeydown = handleKeyDown;
 document.onkeyup = handleKeyUp;
 
 var BASE_PLAYER_HEALTH = 100;
-var BOARD_WIDTH = 10;
-var BOARD_HEIGHT = 10;
+var BOARD_WIDTH = 10;//in squares
+var BOARD_HEIGHT = 10;//in squares
+var BOARD_FRAME_WIDTH = 5;
+var BOARD_FRAME_HEIGHT = 5;
 var BOARD_SQUARE_WIDTH = 10;
 var BOARD_SQUARE_HEIGHT = 10;
+var BOARD_SQUARE_SPACING = 5;
 var RAINBOW_GEM_CHANCE = 0.1;
 
 var selectedGem1, selectedGem2;
@@ -51,7 +54,16 @@ manifest = [
     {src:"gameplayArea.jpg", id:"gameplayScreen"},
     {src:"buttons.png", id:"button"},
     {src:"sprites.png", id:"walkingSprites"},
-    {src:"levelSign.png", id:"levelSign"}
+    {src:"levelSign.png", id:"levelSign"},
+    {src:"gemRed.png", id:"gemRed"},
+    {src:"gemYellow.png", id:"gemYellow"},
+    {src:"gemGreen.png", id:"gemGreen"},
+    {src:"gemBlue.png", id:"gemBlue"},
+    {src:"gemPurple.png", id:"gemPurple"},
+    {src:"gemRock.png", id:"gemRock"},
+    {src:"gemDamage.png", id:"gemDamage"},
+    {src:"gemRainbow.png", id:"gemRainbow"},
+
 ];
 
 /*------------------------------Objects------------------------------*/
@@ -92,6 +104,10 @@ Gem.prototype = {
     },
     shatter: function(player) {
         //abstract
+    },
+    setupImage: function()
+    {
+        
     }
 }
 function getRandomGem(x, y)
@@ -146,6 +162,10 @@ function gemsAreAdjacent(gemA, gemB)
         shatter: function(player){
             //animate breaking
             //give player red gem
+        },
+        setupImage: function()
+        {
+            this.image = new createjs.Bitmap(queue.getResult("gemRed"));
         }
     }
     extend(Gem, RedGem);
@@ -159,6 +179,10 @@ function gemsAreAdjacent(gemA, gemB)
         shatter: function(player){
             //animate breaking
             //give player yellow gem
+        },
+        setupImage: function()
+        {
+            this.image = new createjs.Bitmap(queue.getResult("gemYellow"));
         }
     }
     extend(Gem, YellowGem);
@@ -172,6 +196,10 @@ function gemsAreAdjacent(gemA, gemB)
         shatter: function(player){
             //animate breaking
             //give player yellow gem
+        },
+        setupImage: function()
+        {
+            this.image = new createjs.Bitmap(queue.getResult("gemGreen"));
         }
     }
     extend(Gem, GreenGem);
@@ -185,6 +213,10 @@ function gemsAreAdjacent(gemA, gemB)
         shatter: function(player){
             //animate breaking
             //give player Blue gem
+        },
+        setupImage: function()
+        {
+            this.image = new createjs.Bitmap(queue.getResult("gemBlue"));
         }
     }
     extend(Gem, BlueGem);
@@ -198,6 +230,10 @@ function gemsAreAdjacent(gemA, gemB)
         shatter: function(player){
             //animate breaking
             //give player Purple gem
+        },
+        setupImage: function()
+        {
+            this.image = new createjs.Bitmap(queue.getResult("gemPurple"));
         }
     }
     extend(Gem, PurpleGem);
@@ -211,6 +247,10 @@ function gemsAreAdjacent(gemA, gemB)
         shatter: function(player){
             //animate breaking
             //give player Rock gem
+        },
+        setupImage: function()
+        {
+            this.image = new createjs.Bitmap(queue.getResult("gemRock"));
         }
     }
     extend(Gem, RockGem);
@@ -224,6 +264,10 @@ function gemsAreAdjacent(gemA, gemB)
         shatter: function(player){
             //animate breaking
             //hurt other player
+        },
+        setupImage: function()
+        {
+            this.image = new createjs.Bitmap(queue.getResult("gemDamage"));
         }
     }
     extend(Gem, DamageGem);
@@ -237,6 +281,10 @@ function gemsAreAdjacent(gemA, gemB)
         shatter: function(player){
             //animate breaking
             //give player correct gem (pass type?)
+        },
+        setupImage: function()
+        {
+            this.image = new createjs.Bitmap(queue.getResult("gemRainbow"));
         }
     }
     extend(Gem, RainbowGem);
@@ -426,6 +474,11 @@ function GameBoard()
     {
         this.squares[i] = new Array(BOARD_WIDTH);
     }
+    this.width = (BOARD_FRAME_WIDTH*2)+(BOARD_WIDTH*BOARD_SQUARE_WIDTH)+((BOARD_WIDTH-1)*BOARD_SQUARE_SPACING);
+    this.height = (BOARD_FRAME_HEIGHT*2)+(BOARD_HEIGHT*BOARD_SQUARE_HEIGHT)+((BOARD_HEIGHT-1)*BOARD_SQUARE_SPACING);
+    this.image = new createjs.Rectangle(0,0,this.width, this.height);
+    this.container = new createjs.Container();
+    this.container.addChild(this.image);
 }
 GameBoard.prototype = {
     fill: function()
@@ -435,6 +488,9 @@ GameBoard.prototype = {
             for(var y = 0; y < BOARD_HEIGHT; y++)
             {
                 this.squares[x][y] = getRandomGem(x, y);
+                this.squares[x][y].image.x = this.image.x + BOARD_FRAME_WIDTH + (x*BOARD_SQUARE_WIDTH) + (x*BOARD_SQUARE_SPACING);
+                this.squares[x][y].image.y = this.image.y + BOARD_FRAME_HEIGHT + (x*BOARD_SQUARE_HEIGHT) + (x*BOARD_SQUARE_SPACING);
+                this.container.addChild(this.squares[x][y].image);
             }
         }
     },
