@@ -6,6 +6,7 @@ document.onkeyup = handleKeyUp;
 var BASE_PLAYER_HEALTH = 100;
 var BOARD_WIDTH = 10;
 var BOARD_HEIGHT = 10;
+var RAINBOW_GEM_CHANCE = 0.1;
 
 var KC_LEFT = 37;
 var KC_UP = 38;
@@ -60,7 +61,7 @@ function extend(base, sub) {
   });
 }
 var GemTypes = { Red:0, Yellow:1, Green:2, Blue:3, Purple:4, Rock:5, Damage:6, Rainbow:7};
-
+var SquareContents = {Gem:0, Empty:1};
 //region /*---Gems---*/  
 function GemAmount(gemType, amount) 
 {
@@ -75,11 +76,41 @@ function Gem(gemType, x, y)
 }
 Gem.prototype = {
     matches: function(otherGem) {
-        return (this.type == otherGem.type);
+        var match = false;
+        if(otherGem instanceof Gem)
+        {
+            match =  (this.type == otherGem.type);
+        }
+        return match;
     },
     break: function(player) {
         //abstract
     }
+}
+function getRandomGem(x, y)
+{
+    //Math.random(); 0-1
+    var gem;
+    var rainbowChance = Math.random();
+    if(rainbowChance <= RAINBOW_GEM_CHANCE)
+    {
+        gem = new RainbowGem(x, y);
+    }
+    else
+    {
+        var otherGem = Math.round(Math.random()*6);
+        switch(otherGem)
+        {
+            case GemTypes.Red: gem = new RedGem(x,y); break;
+            case GemTypes.Yellow: gem = new YellowGem(x,y); break;    
+            case GemTypes.Green: gem = new GreenGem(x,y); break;    
+            case GemTypes.Blue: gem = new BlueGem(x,y); break;    
+            case GemTypes.Purple: gem = new PurpleGem(x,y); break;    
+            case GemTypes.Rock: gem = new RockGem(x,y); break;    
+            case GemTypes.Damage: gem = new DamageGem(x,y); break;    
+        }
+    }
+    return gem;
 }
     //region Red 
     function RedGem(x, y)
@@ -344,9 +375,87 @@ Player.prototype = {
 };
 //endregion
 //region /*---Board---*/
+function getBoardSquare(boardArray, x, y)
+{
+    var square;
+    if(x<0 || y<0 || x>=BOARD_WIDTH || y>=BOARDHEIGHT)
+    {
+        square = SquareContents.Empty;
+    }
+    else
+    {
+        square = boardArray[x][y];
+    }
+}
+function MatchSet(gemType)
+{
+    this.gemType = gemType;
+    this.numGems = 0;
+    this.gems = [];
+}
 function GameBoard()
 {
-    
+    this.squares = new Array(BOARD_HEIGHT);
+    for(var i = 0; i < BOARD_HEIGHT; i++)
+    {
+        this.squares[i] = new Array(BOARD_WIDTH);
+    }
+}
+GameBoard.prototype = {
+    fill: function()
+    {
+        for(var x = 0; x < BOARD_WIDTH; x++)
+        {
+            for(var y = 0; y < BOARD_HEIGHT; y++)
+            {
+                this.squares[x][y] = getRandomGem(x, y);
+            }
+        }
+    },
+    findGemMatches: function()
+    {
+        var matchSets = []; //list of lists of gems
+        var squaresCopy = this.squares.slice(0);
+        for(var x = 0; x < BOARD_WIDTH; x ++)
+        {
+            for(var y = 0; y < BOARD_HEIGHT; y++)
+            {
+                var target = squaresCopy[x][y];
+                if(target != SquareContents.Empty)//targetGem  is not an empty space)
+                {
+                    if((target.matches(getBoardSquare(squaresCopy, x+1, y))) && (target.matches(getBoardSquare(squaresCopy, x+2, y))) )
+                    {
+                        var matchSet = new MatchSet(targetGem.type);//matchSet is new MatchSet
+                        var xOffset = 0;
+                        while(target.matches(getBoardSquare(squaresCopy, x+xOffset, y)))//[gem at x+xOffset, y] matches targetGem)
+                        {
+                            matchSet.gems[matchSet.gems.length] = squaresCopy[x+xOffset][y];//add gem at x+xOffset, y to matchSet's combinationSet
+                            squaresCopy[x+xOffset][y] = SquareContents.Empty;//gem at x+xOffset, y is an empty space
+                            xOffset++;
+                            matchSet.numGems++; //matchSet's number of gems ++
+                        }
+                        matchSets[matchSets.length] = matchSet;
+                    }
+                }
+                if(target != SquareContents.Empty)
+                {
+                    if( (target.matches(getBoardSquare(squaresCopy, x, y+1))) && (target.matches(getBoardSquare(squaresCopy, x, y+2))) )
+                    {
+                        var matchSet = new MatchSet(targetGem.type);//matchSet is new MatchSet
+                        var yOffset = 0;
+                        while(target.matches(getBoardSquare(squaresCopy, x, y+yOffset)))
+                        {
+                            matchSet.gems[matchSet.gems.length] = squaresCopy[x][y+yOffset];//add gem at x, y+yOffset to matchSet's combinationSet
+                            squaresCopy[x][y+yOffset]= SquareContents.Empty;
+                            yOffset++;
+                            matchSet.numGems++;
+                        }
+                        matchSets[matchSets.length] = matchSet;
+                    }
+                }
+            }
+        }
+    },
 }
 //endregion
 //endregion
