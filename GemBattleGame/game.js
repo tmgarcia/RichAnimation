@@ -6,7 +6,14 @@ document.onkeyup = handleKeyUp;
 var BASE_PLAYER_HEALTH = 100;
 var BOARD_WIDTH = 10;
 var BOARD_HEIGHT = 10;
+var BOARD_SQUARE_WIDTH = 10;
+var BOARD_SQUARE_HEIGHT = 10;
 var RAINBOW_GEM_CHANCE = 0.1;
+
+var selectedGem1, selectedGem2;
+
+var player1, player2;
+var board;
 
 var KC_LEFT = 37;
 var KC_UP = 38;
@@ -83,7 +90,7 @@ Gem.prototype = {
         }
         return match;
     },
-    break: function(player) {
+    shatter: function(player) {
         //abstract
     }
 }
@@ -112,13 +119,31 @@ function getRandomGem(x, y)
     }
     return gem;
 }
+function moveGem(gem, newX, newY)
+{
+    board.squares[gem.x][gem.y] = SquareContents.Empty;
+    board.squares[newX][newY] = gem;
+    gem.x = newX;
+    gem.y = newY;
+    //animate moving of gem
+}
+function gemsAreAdjacent(gemA, gemB)
+{
+    var adjacent = false;
+    if( (gemA.y == gemB.y && (gemA.x == gemB.x+1 || gemA.x == gemB.x-1)) ||
+       (gemA.x == gemB.x && (gemA.y == gemB.y+1 || gemA.y == gemB.y-1)))
+    {
+        adjacent = true;
+    }
+    return adjacent;
+}
     //region Red 
     function RedGem(x, y)
     {
         Gem.call(this, GemTypes.Red, x, y);
     }
     RedGem.prototype = {
-        break: function(player){
+        shatter: function(player){
             //animate breaking
             //give player red gem
         }
@@ -131,7 +156,7 @@ function getRandomGem(x, y)
         Gem.call(this, GemTypes.Yellow, x, y);
     }
     YellowGem.prototype = {
-        break: function(player){
+        shatter: function(player){
             //animate breaking
             //give player yellow gem
         }
@@ -144,7 +169,7 @@ function getRandomGem(x, y)
         Gem.call(this, GemTypes.Green, x, y);
     }
     GreenGem.prototype = {
-        break: function(player){
+        shatter: function(player){
             //animate breaking
             //give player yellow gem
         }
@@ -157,7 +182,7 @@ function getRandomGem(x, y)
         Gem.call(this, GemTypes.Blue, x, y);
     }
     BlueGem.prototype = {
-        break: function(player){
+        shatter: function(player){
             //animate breaking
             //give player Blue gem
         }
@@ -170,7 +195,7 @@ function getRandomGem(x, y)
         Gem.call(this, GemTypes.Purple, x, y);
     }
     PurpleGem.prototype = {
-        break: function(player){
+        shatter: function(player){
             //animate breaking
             //give player Purple gem
         }
@@ -183,7 +208,7 @@ function getRandomGem(x, y)
         Gem.call(this, GemTypes.Rock, x, y);
     }
     RockGem.prototype = {
-        break: function(player){
+        shatter: function(player){
             //animate breaking
             //give player Rock gem
         }
@@ -196,7 +221,7 @@ function getRandomGem(x, y)
         Gem.call(this, GemTypes.Damage, x, y);
     }
     DamageGem.prototype = {
-        break: function(player){
+        shatter: function(player){
             //animate breaking
             //hurt other player
         }
@@ -209,7 +234,7 @@ function getRandomGem(x, y)
         Gem.call(this, GemTypes.Rainbow, x, y);
     }
     RainbowGem.prototype = {
-        break: function(player){
+        shatter: function(player){
             //animate breaking
             //give player correct gem (pass type?)
         }
@@ -361,10 +386,11 @@ Inventory.prototype = {
         }
     }
 }
-function Player()
+function Player(playerClass)
 {
     this.inventory = new Inventory();
     this.health = BASE_PLAYER_HEALTH;
+    this.class = playerClass;
 }
 Player.prototype = {
     decreaseHealth: function(amount)
@@ -455,7 +481,72 @@ GameBoard.prototype = {
                 }
             }
         }
+        return matchSets;
     },
+    findFallingGems: function()
+    {
+        var fallingGems = []; //list of falling gems
+        var squaresCopy = this.squares.slice(0);
+        for(var x = 0; x<BOARD_WIDTH; x++)
+        {
+            for(var y = BOARD_HEIGHT-2; y>=0; y++)//start at the 2nd to the bottom row
+            {
+                if(squaresCopy[x][y]!= SquareContents.Empty && squaresCopy[x][y-1]===SquareContents.Empty)//this square not empty but one below it is
+                {
+                    fallingGems[fallingGems.length] = squaresCopy[x][y];
+                    squaresCopy[x][y] = SquareContents.Empty;
+                }
+            }
+        }
+        return fallingGems;
+    },
+    findEmptyColumns: function()//Performed after the falling gems have been found & have fallen, used to fill found columns
+    {
+        var emptySpacesPerColumn = [BOARD_WIDTH];//array of numbers of empty spaces per column, ie if [0] = 5, column 0 has 5 empty spaces
+        for(var x = 0; x < BOARD_WIDTH; x++)
+        {
+            emptySpacesPerColumn[x] = 0;
+            for(var y = 0; y < BOARD_HEIGHT; y++)
+            {
+                if(this.squares[x][y] === SquareContents.Empty)
+                {
+                    emptySpacesPerColumn[x]++;
+                }
+            }
+        }
+    },
+    movesExist: function()//check that there are still possible matches existing on board
+    {
+        var switchPatterns = [
+            [[0,1],[1,0],[2,0]],
+            [[0,1],[1,1],[2,0]],
+            [[0,0],[1,1],[2,0]],
+            [[0,1],[1,0],[2,1]],
+            [[0,0],[1,0],[2,1]],
+            [[0,0],[1,1],[2,1]],
+            [[0,0],[0,2],[0,3]],
+            [[0,0],[0,1],[0,3]]
+        ];
+        for(var x = 0; x < BOARD_WIDTH; x++)
+        {
+            for(var y = 0; y < BOARD_HEIGHT; y++)
+            {
+                for(pat in switchPatterns)
+                {
+                    if( ( ( getBoardSquare(this.squares, x+pat[0][0], y+pat[0][1]) == getBoardSquare(this.squares, x+pat[1][0], y+pat[1][1])) &&
+                            (getBoardSquare(this.squares, x+pat[0][0], y+pat[0][1]) == getBoardSquare(this.squares, x+pat[2][0], y+pat[2][1])) &&
+                            (getBoardSquare(this.squares, x+pat[0][0], y+pat[0][1]) != SquareContents.Empty)) ||
+                        ( ( getBoardSquare(this.squares, x+pat[0][1], y+pat[0][0]) == getBoardSquare(this.squares, x+pat[1][1], y+pat[1][0])) &&
+                            (getBoardSquare(this.squares, x+pat[0][1], y+pat[0][0]) == getBoardSquare(this.squares, x+pat[2][1], y+pat[2][0])) &&
+                            (getBoardSquare(this.squares, x+pat[0][1], y+pat[0][0]) != SquareContents.Empty)) )
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
 }
 //endregion
 //endregion
@@ -529,6 +620,7 @@ function loadComplete(evt)
     
     walkingSprite = new createjs.Sprite(walkSheet);
     
+    setupGameObjects();
     setupButtons();
     setupTitleScreen();
     setupGameOverScreen();
@@ -564,6 +656,16 @@ function setupButtons()
     btnContinue.on("mouseover", function(evt) { btnContinue.gotoAndPlay("continueOver");});
     btnContinue.on("mouseout", function(evt) { btnContinue.gotoAndPlay("continueUp");});
     btnContinue.on("mousedown", function(evt) { btnContinue.gotoAndPlay("continueDown");});
+}
+function setupGameObjects()
+{
+    var p1Class = new Class1();
+    var p2Class = new Class1();
+    player1 = new Player(p1Class);
+    player2 = new Player(p2Class);
+    
+    board = new GameBoard();
+    board.fill();
 }
 //endregion
 /*----------------------------Main Loop----------------------------*/
