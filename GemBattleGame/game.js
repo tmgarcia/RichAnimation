@@ -42,6 +42,191 @@ manifest = [
     {src:"levelSign.png", id:"levelSign"}
 ];
 
+/*------------------------------Objects------------------------------*/
+function extend(base, sub) {
+  var origProto = sub.prototype;
+  sub.prototype = Object.create(base.prototype);
+  for (var key in origProto)  {
+     sub.prototype[key] = origProto[key];
+  }
+  sub.prototype.constructor = sub;
+  Object.defineProperty(sub.prototype, 'constructor', { 
+    enumerable: false, 
+    value: sub 
+  });
+}
+var GemTypes = { Red:0, Yellow:1, Green:2, Blue:3, Purple:4, Rock:5, Damage:6, Rainbow:7};
+
+//region /*---Gems---*/  
+function GemAmount(gemType, amount) 
+{
+    this.type = gemType;
+    this.amount = amount;
+}
+function Gem(gemType, x, y)
+{
+    this.type = gemType;
+    this.x = x;
+    this.y = y;
+}
+Gem.prototype = {
+    matches: function(otherGem) {
+        return (this.type == otherGem.type);
+    },
+    break: function(player) {
+        //abstract
+    }
+}
+    //region Red 
+    function RedGem(x, y)
+    {
+        Gem.call(this, GemTypes.Red, x, y);
+    }
+    RedGem.prototype = {
+        break: function(player){
+            //animate breaking
+            //give player red gem
+        }
+    }
+    extend(Gem, RedGem);
+    //endregion
+    //region Yellow 
+    function YellowGem(x, y)
+    {
+        Gem.call(this, GemTypes.Yellow, x, y);
+    }
+    YellowGem.prototype = {
+        break: function(player){
+            //animate breaking
+            //give player yellow gem
+        }
+    }
+    extend(Gem, YellowGem);
+    //endregion
+    //region Green 
+    function GreenGem(x, y)
+    {
+        Gem.call(this, GemTypes.Green, x, y);
+    }
+    GreenGem.prototype = {
+        break: function(player){
+            //animate breaking
+            //give player yellow gem
+        }
+    }
+    extend(Gem, GreenGem);
+    //endregion
+    //region Blue 
+    function BlueGem(x, y)
+    {
+        Gem.call(this, GemTypes.Blue, x, y);
+    }
+    BlueGem.prototype = {
+        break: function(player){
+            //animate breaking
+            //give player Blue gem
+        }
+    }
+    extend(Gem, BlueGem);
+    //endregion
+    //region Purple
+    function PurpleGem(x, y)
+    {
+        Gem.call(this, GemTypes.Purple, x, y);
+    }
+    PurpleGem.prototype = {
+        break: function(player){
+            //animate breaking
+            //give player Purple gem
+        }
+    }
+    extend(Gem, PurpleGem);
+    //endregion
+    //region Rock 
+    function RockGem(x, y)
+    {
+        Gem.call(this, GemTypes.Rock, x, y);
+    }
+    RockGem.prototype = {
+        break: function(player){
+            //animate breaking
+            //give player Rock gem
+        }
+    }
+    extend(Gem, RockGem);
+    //endregion
+    //region Damage 
+    function DamageGem(x, y)
+    {
+        Gem.call(this, GemTypes.Damage, x, y);
+    }
+    DamageGem.prototype = {
+        break: function(player){
+            //animate breaking
+            //hurt other player
+        }
+    }
+    extend(Gem, DamageGem);
+    //endregion
+    //region Rainbow 
+    function RainbowGem(x, y)
+    {
+        Gem.call(this, GemTypes.Rainbow, x, y);
+    }
+    RainbowGem.prototype = {
+        break: function(player){
+            //animate breaking
+            //give player correct gem (pass type?)
+        }
+    }
+    extend(Gem, RainbowGem);
+    //endregion
+//endregion
+//region /*---Powers---*/
+function Cost(redCost, yellowCost, greenCost, blueCost, purpleCost)
+{
+    this.redCost = redCost;
+    this.yellowCost = yellowCost;
+    this.greenCost = greenCost;
+    this.blueCost = blueCost;
+    this.purpleCost = purpleCost;
+    this.redFulfilled = 0;
+    this.yellowFulfilled = 0;
+    this.greenFulfilled = 0;
+    this.blueFulfilled = 0;
+    this.purpleFulfilled = 0;
+}
+Cost.prototype = {
+    updateFulfilledGems: function(gemType, amount){
+        switch(gemType)
+        {
+            case GemTypes.Red: this.redFulfilled = amount;
+            case GemTypes.Yellow: this.yellowFulfilled = amount;    
+            case GemTypes.Green: this.greenFulfilled = amount;    
+            case GemTypes.Blue: this.blueFulfilled = amount;    
+            case GemTypes.Purple: this.purpleFulfilled = amount;  
+        }
+        //light up if cost completely fulfilled
+    },
+    clearFulfilledGems: function(){
+        this.redFulfilled = 0;
+        this.yellowFulfilled = 0;
+        this.greenFulfilled = 0;
+        this.blueFulfilled = 0;
+        this.purpleFulfilled = 0;
+    }
+}
+function Power(cost)
+{
+    this.cost = cost;
+}
+Power.prototype = {
+    execute: function(){
+        //execute power
+    }
+}
+//endregion
+
 /*------------------------------Setup------------------------------*/
 //region Setup
 function setupCanvas()
