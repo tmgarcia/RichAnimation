@@ -3,6 +3,10 @@
 document.onkeydown = handleKeyDown;
 document.onkeyup = handleKeyUp;
 
+var BASE_PLAYER_HEALTH = 100;
+var BOARD_WIDTH = 10;
+var BOARD_HEIGHT = 10;
+
 var KC_LEFT = 37;
 var KC_UP = 38;
 var KC_RIGHT = 39;
@@ -226,7 +230,126 @@ Power.prototype = {
     }
 }
 //endregion
-
+//region /*---Classes---*/
+function PlayerClass(power1, power2, power3, power4)
+{
+    this.power1 = power1;
+    this.power2 = power2;
+    this.power3 = power3;
+    this.power4 = power4;
+}
+    //region Class 1 
+        //region Power1 
+        //Remove all of [x] gem from board
+        function C1Power1()
+        {
+            var cost = new Cost(0,0,0,0,0);
+            Power.call(this, cost);
+        }
+        C1Power1.prototype = {
+            execute: function(){
+                //Remove all of [x] gem from board
+            }
+        }
+        extend(Power, C1Power1);
+        //endregion
+        //region Power2 
+            //Heal [x] life points
+            function C1Power2()
+            {
+                var cost = new Cost(0,0,0,0,0);
+                Power.call(this, cost);
+            }
+            C1Power2.prototype = {
+                execute: function(){
+                    //Heal [x] life points
+                }
+            }
+            extend(Power, C1Power2);
+        //endregion
+        //region Power3 
+            //Convert all of enemy’s [x color] into [y color]
+            function C1Power3()
+            {
+                var cost = new Cost(0,0,0,0,0);
+                Power.call(this, cost);
+            }
+            C1Power3.prototype = {
+                execute: function(){
+                    //Convert all of enemy’s [x color] into [y color]
+                }
+            }
+            extend(Power, C1Power3);
+        //endregion
+        //region Power4 
+            //Hurt enemy [x] amount
+            function C1Power4()
+            {
+                var cost = new Cost(0,0,0,0,0);
+                Power.call(this, cost);
+            }
+            C1Power4.prototype = {
+                execute: function(){
+                    //Hurt enemy [x] amount
+                }
+            }
+            extend(Power, C1Power4);
+        //endregion
+    function Class1()
+    {
+        var power1 = new C1Power1();
+        var power2 = new C1Power2();
+        var power3 = new C1Power3();
+        var power4 = new C1Power4();
+        PlayerClass.call(this, power1, power2, power3, power4);
+    }
+    extend(PlayerClass, Class1);
+    //endregion
+//endregion
+//region /*---Players---*/
+function Inventory()
+{
+    this.RedGems = 0;
+    this.YellowGems = 0;
+    this.GreenGems = 0;
+    this.BlueGems = 0;
+    this.PurpleGems = 0;
+    this.RockGems = 0;
+}
+Inventory.prototype = {
+    addGems: function(gemType, amount)
+    {
+        switch(gemType)
+        {
+            case GemTypes.Red: this.RedGems++; break;
+            case GemTypes.Yellow: this.YellowGems++; break;
+            case GemTypes.Green: this.GreenGems++; break;
+            case GemTypes.Blue: this.BlueGems++; break;
+            case GemTypes.Purple: this.PurpleGems++; break;
+            case GemTypes.Rock: this.RockGems++; break;
+        }
+    }
+}
+function Player()
+{
+    this.inventory = new Inventory();
+    this.health = BASE_PLAYER_HEALTH;
+}
+Player.prototype = {
+    decreaseHealth: function(amount)
+    {
+        this.health -= amount;
+        //do something if health <= 0
+    }
+};
+//endregion
+//region /*---Board---*/
+function GameBoard()
+{
+    
+}
+//endregion
+//endregion
 /*------------------------------Setup------------------------------*/
 //region Setup
 function setupCanvas()
