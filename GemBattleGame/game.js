@@ -9,6 +9,8 @@ var HEALTH_BAR_HEIGHT = 250;
 var HEALTH_BAR_PADDING = 3;
 var PLAYER_DISPLAY_WIDTH = 150;
 
+var DAMAGE_GEM_DAMAGE = 5;
+
 var INVENTORY_TEXT_SIZE = 18;
 
 var BOARD_WIDTH = 10;//in squares
@@ -27,7 +29,7 @@ var allLoadingComplete;
 
 var selectedGem1, selectedGem2;
 var matchedGemsToBreak, waitingForSwap, waitingForMatchBreaks, waitingForDrop,lastDrop;
-var player1, player2, currentPlayer;
+var player1, player2, currentPlayer, currentPlayerText;
 var board;
 
 var KC_LEFT = 37;
@@ -78,6 +80,7 @@ manifest = [
     {src:"gemDamage.png", id:"gemDamage"},
     {src:"gemRainbow.png", id:"gemRainbow"},
     {src:"powerBase.png", id:"powerBase"},
+    {src:"powerBaseDimmed.png", id:"powerBaseDimmed"},
     {src:"noCostSlot.png", id:"noCostSlot"}
 ];
 
@@ -191,8 +194,12 @@ function gemsAreAdjacent(gemA, gemB)
     }
     return adjacent;
 }
-function shatterGem(gem)
+function shatterGem(gem, currPlayer)
 {
+    if(currPlayer === undefined)
+    {
+        currPlayer = null;
+    }
     resetGemPosition(gem);
     if(gem.image.regX === 0 && gem.image.regY === 0)
     {
@@ -206,7 +213,7 @@ function shatterGem(gem)
         .to({rotation:360}, 1500, createjs.Ease.bounceOut)
         .wait(500)
         .to({y:canvasHeight+200, rotation:0}, 1000, createjs.Ease.backIn)
-        .call(gem.shatter)
+        .call(gem.shatter, [currPlayer])
         .call(matchedGemBroken);
 }
     //region Red 
@@ -218,6 +225,10 @@ function shatterGem(gem)
         shatter: function(player){
             this.image.visible = false;
             board.container.removeChild(this.image);
+            if(player !== null && player!== undefined)
+            {
+                player.inventory.addGems(GemTypes.Red, 1);
+            }
             //animate breaking
             //give player red gem
         },
@@ -238,6 +249,10 @@ function shatterGem(gem)
         shatter: function(player){
             this.image.visible = false;
             board.container.removeChild(this.image);
+            if(player !== null && player!== undefined)
+            {
+                player.inventory.addGems(GemTypes.Yellow, 1);
+            }
             //animate breaking
             //give player yellow gem
         },
@@ -258,6 +273,10 @@ function shatterGem(gem)
         shatter: function(player){
             this.image.visible = false;
             board.container.removeChild(this.image);
+            if(player !== null && player!== undefined)
+            {
+                player.inventory.addGems(GemTypes.Green, 1);
+            }
             //animate breaking
             //give player yellow gem
         },
@@ -278,6 +297,10 @@ function shatterGem(gem)
         shatter: function(player){
             this.image.visible = false;
             board.container.removeChild(this.image);
+            if(player !== null && player!== undefined)
+            {
+                player.inventory.addGems(GemTypes.Blue, 1);
+            }
             //animate breaking
             //give player Blue gem
         },
@@ -298,6 +321,10 @@ function shatterGem(gem)
         shatter: function(player){
             this.image.visible = false;
             board.container.removeChild(this.image);
+            if(player !== null && player!== undefined)
+            {
+                player.inventory.addGems(GemTypes.Purple, 1);
+            }
             //animate breaking
             //give player Purple gem
         },
@@ -318,6 +345,10 @@ function shatterGem(gem)
         shatter: function(player){
             this.image.visible = false;
             board.container.removeChild(this.image);
+            if(player !== null && player!== undefined)
+            {
+                player.inventory.addGems(GemTypes.Rock, 1);
+            }
             //animate breaking
             //give player Rock gem
         },
@@ -338,6 +369,17 @@ function shatterGem(gem)
         shatter: function(player){
             this.image.visible = false;
             board.container.removeChild(this.image);
+            if(player !== null)
+            {
+                if(player === player1)
+                {
+                    player2.decreaseHealth(DAMAGE_GEM_DAMAGE);
+                }
+                else
+                {
+                    player1.decreaseHealth(DAMAGE_GEM_DAMAGE);
+                }
+            }
             //animate breaking
             //hurt other player
         },
@@ -449,11 +491,12 @@ Power.prototype = {
         this.label = new createjs.Text(this.labelText, "12px Arial", "#fff");
         this.container.addChild(this.backImage, this.label);
         var y = 20;
+        var textOffset = 10;
         if(this.cost.redCost>0)
         {
             this.redCostText = new createjs.Text(""+this.cost.redCost, "20px Arial", "#000");
             this.redCostText.textAlign = "center";
-            this.redCostText.x = 4;
+            this.redCostText.x = 4+textOffset;
             this.redCostText.y = y;
             this.container.addChild(this.redCostText);
         }
@@ -468,7 +511,7 @@ Power.prototype = {
         {
             this.yellowCostText = new createjs.Text(""+this.cost.yellowCost, "20px Arial", "#000");
             this.yellowCostText.textAlign = "center";
-            this.yellowCostText.x = 2*(4) + 25;
+            this.yellowCostText.x = 2*(4) + 25 + textOffset;
             this.yellowCostText.y = y;
             this.container.addChild(this.yellowCostText);
         }
@@ -483,7 +526,7 @@ Power.prototype = {
         {
             this.greenCostText = new createjs.Text(""+this.cost.greenCost, "20px Arial", "#000");
             this.greenCostText.textAlign = "center";
-            this.greenCostText.x = 3*(4) + 2*(25);
+            this.greenCostText.x = 3*(4) + 2*(25)+ textOffset;
             this.greenCostText.y = y;
             this.container.addChild(this.greenCostText);
         }
@@ -498,7 +541,7 @@ Power.prototype = {
         {
             this.blueCostText = new createjs.Text(""+this.cost.blueCost, "20px Arial", "#000");
             this.blueCostText.textAlign = "center";
-            this.blueCostText.x =4*(4) + 3*(25);
+            this.blueCostText.x =4*(4) + 3*(25)+ textOffset;
             this.blueCostText.y = y;
             this.container.addChild(this.blueCostText);
         }
@@ -513,7 +556,7 @@ Power.prototype = {
         {
             this.purpleCostText = new createjs.Text(""+this.cost.purpleCost, "20px Arial", "#000");
             this.purpleCostText.textAlign = "center";
-            this.purpleCostText.x = (150-25)-4;
+            this.purpleCostText.x = ((150-25)-4) + textOffset;
             this.purpleCostText.y = y;
             this.container.addChild(this.purpleCostText);
         }
@@ -643,6 +686,7 @@ function Inventory()
 Inventory.prototype = {
     addGems: function(gemType, amount)
     {
+        console.log("add " + amount + " " + gemType + " gems");
         switch(gemType)
         {
             case GemTypes.Red: this.RedGems+=1; this.redAmt.text = ""+this.RedGems; break;
@@ -758,14 +802,14 @@ Player.prototype = {
         //this.healthBarContainer.y = 50;
         this.inventory.setupDisplay(isOnLeft);
         this.playerClass.setupDisplay();
-        this.playerClass.container.y = canvasHeight - 220;
+        this.playerClass.container.y = canvasHeight - 320;
         if(isOnLeft)
         {
             this.healthBarContainer.x = (PLAYER_DISPLAY_WIDTH - (HEALTH_BAR_WIDTH + (2*HEALTH_BAR_PADDING)));
         }
         else
         {
-            this.inventory.container.x = PLAYER_DISPLAY_WIDTH - 50;
+            this.inventory.container.x = PLAYER_DISPLAY_WIDTH - 75;
         }
         this.container.addChild(this.healthBarContainer, this.inventory.container, this.playerClass.container);
     }
@@ -1071,9 +1115,10 @@ function setupGameObjects()
     player2.setupDisplay(false);
     console.log("New board");
     board = new GameBoard();
-    //board.fill();
     selectedGem1 = null;
     selectedGem2 = null;
+    currentPlayerText = new createjs.Text("Current Player", "20px Arial", "#fff");
+    currentPlayerText.textAlign = "center";
 }
 function resetGameObjects()
 {
@@ -1082,6 +1127,28 @@ function resetGameObjects()
     selectedGem1 = null;
     selectedGem2 = null;
     board.fill();
+    currentPlayerText.x = SCREEN_PADDING + (PLAYER_DISPLAY_WIDTH/2);
+    currentPlayerText.y = 10;
+    currentPlayer = null;
+    
+    var matchSets = board.findGemMatches();
+    if(matchSets.length >0)
+    {
+        matchedGemsToBreak = matchSets.length;
+        waitingForMatchBreaks = true;
+        for(var j = 0; j < matchSets.length; j++)
+        {
+            var matchSet = matchSets[j];
+            for(var i = 0; i < matchSet.gems.length; i++)
+            {
+                shatterGem(matchSet.gems[i], null);
+            }
+        }
+    }
+    else
+    {
+        currentPlayer = player1;
+    }
 }
 //endregion
 /*----------------------------Main Loop----------------------------*/
@@ -1231,6 +1298,24 @@ function gameStateSwitch()
 //endregion
 /*----------------------------Game Play----------------------------*/
 //region gameplay
+function otherPlayerTurn()
+{
+    if(currentPlayer === player1)
+    {
+        currentPlayer = player2;
+        var newTextX = (canvasWidth - SCREEN_PADDING) - (PLAYER_DISPLAY_WIDTH/2);
+        moveTween = createjs.Tween.get(currentPlayerText, {loop:false, override:true})
+        .to({x:newTextX}, 500, createjs.Ease.bounceOut);
+        //tween =  currentPlayerText.x = SCREEN_PADDING + (PLAYER_DISPLAY_WIDTH/2);
+    }
+    else
+    {
+        currentPlayer = player1;
+        var newTextX = SCREEN_PADDING + (PLAYER_DISPLAY_WIDTH/2);
+        moveTween = createjs.Tween.get(currentPlayerText, {loop:false, override:true})
+        .to({x:newTextX}, 500, createjs.Ease.bounceOut);
+    }
+}
 function handleGemClick(evt, data)
 {
     var clickedGem = data.gem;
@@ -1304,7 +1389,7 @@ function swapComplete()
                 var matchSet = matchSets[j];
                 for(var i = 0; i < matchSet.gems.length; i++)
                 {
-                    shatterGem(matchSet.gems[i]);
+                    shatterGem(matchSet.gems[i],currentPlayer);
                 }
             }
         }
@@ -1378,12 +1463,13 @@ function dropsComplete()
                 var matchSet = matchSets[j];
                 for(var i = 0; i < matchSet.gems.length; i++)
                 {
-                    shatterGem(matchSet.gems[i]);
+                    shatterGem(matchSet.gems[i],currentPlayer);
                 }
             }
         }
         else
         {
+            otherPlayerTurn();
             selectedGem1 = null;
             selectedGem2 = null;
         }
@@ -1455,7 +1541,7 @@ function setupGameplayScreen()
     
     gameplayContainer = new createjs.Container();
     //gameplayContainer.addChild(gameplayScreen, gameTimeText, gameScoreText, walkingSprite, levelDisplayContainer, board.container);
-    gameplayContainer.addChild(gameplayScreen, board.container, player1.container, player2.container);
+    gameplayContainer.addChild(gameplayScreen, board.container, player1.container, player2.container, currentPlayerText);
     stage.addChild(gameplayContainer);
     gameplayContainer.visible = false;
 }
