@@ -10,6 +10,7 @@ var HEALTH_BAR_PADDING = 3;
 var PLAYER_DISPLAY_WIDTH = 150;
 
 var DAMAGE_GEM_DAMAGE = 5;
+var ROCK_GEM_DAMAGE = 5;
 
 var INVENTORY_TEXT_SIZE = 18;
 
@@ -662,14 +663,14 @@ PlayerClass.prototype= {
             //Heal [x] life points
             function C1Power2()
             {
-                this.labelText = "Heal 5";
+                this.labelText = "Heal 15";
                 var cost = new Cost(5,3,0,0,1);
                 Power.call(this, cost);
             }
             C1Power2.prototype = {
                 execute: function(player){
                     //Heal [x] life points
-                    player.addHealth(5);
+                    player.addHealth(15);
                     otherPlayerTurn();
                 }
             };
@@ -890,6 +891,7 @@ Player.prototype = {
         this.updateHealthBar();
         //this.healthBarContainer.y = 50;
         this.inventory.setupDisplay(isOnLeft);
+        this.inventory.rockImage.on("click", throwRock, null, false, {player:this});
         this.playerClass.setupDisplay();
         this.playerClass.container.y = canvasHeight - 320;
         this.playerClass.power1.container.on("click", executePower, null, false, {player:this, power:this.playerClass.power1});
@@ -1486,6 +1488,20 @@ function executePower(evt, data)
     else
     {
         console.log("not current player");
+    }
+}
+function throwRock(evt, data)
+{
+    var player = data.player;
+    if(player === currentPlayer)
+    {
+        if(player.inventory.RockGems >= 3)
+        {
+            var otherPlayer = (player===player1)? player2 : player1;
+            otherPlayer.decreaseHealth(ROCK_GEM_DAMAGE);
+            player.removeGemsFromInventory(GemTypes.Rock, 3);
+            otherPlayerTurn();
+        }
     }
 }
 function otherPlayerTurn()
