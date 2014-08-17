@@ -227,7 +227,7 @@ function shatterGem(gem, currPlayer)
             board.container.removeChild(this.image);
             if(player !== null && player!== undefined)
             {
-                player.inventory.addGems(GemTypes.Red, 1);
+                player.addGemsToInventory(GemTypes.Red, 1);
             }
             //animate breaking
             //give player red gem
@@ -251,7 +251,7 @@ function shatterGem(gem, currPlayer)
             board.container.removeChild(this.image);
             if(player !== null && player!== undefined)
             {
-                player.inventory.addGems(GemTypes.Yellow, 1);
+                player.addGemsToInventory(GemTypes.Yellow, 1);
             }
             //animate breaking
             //give player yellow gem
@@ -275,7 +275,7 @@ function shatterGem(gem, currPlayer)
             board.container.removeChild(this.image);
             if(player !== null && player!== undefined)
             {
-                player.inventory.addGems(GemTypes.Green, 1);
+                player.addGemsToInventory(GemTypes.Green, 1);
             }
             //animate breaking
             //give player yellow gem
@@ -299,7 +299,7 @@ function shatterGem(gem, currPlayer)
             board.container.removeChild(this.image);
             if(player !== null && player!== undefined)
             {
-                player.inventory.addGems(GemTypes.Blue, 1);
+                player.addGemsToInventory(GemTypes.Blue, 1);
             }
             //animate breaking
             //give player Blue gem
@@ -323,7 +323,7 @@ function shatterGem(gem, currPlayer)
             board.container.removeChild(this.image);
             if(player !== null && player!== undefined)
             {
-                player.inventory.addGems(GemTypes.Purple, 1);
+                player.addGemsToInventory(GemTypes.Purple, 1);
             }
             //animate breaking
             //give player Purple gem
@@ -347,7 +347,7 @@ function shatterGem(gem, currPlayer)
             board.container.removeChild(this.image);
             if(player !== null && player!== undefined)
             {
-                player.inventory.addGems(GemTypes.Rock, 1);
+                player.addGemsToInventory(GemTypes.Rock, 1);
             }
             //animate breaking
             //give player Rock gem
@@ -451,6 +451,7 @@ function Cost(redCost, yellowCost, greenCost, blueCost, purpleCost)
     this.greenFulfilled = 0;
     this.blueFulfilled = 0;
     this.purpleFulfilled = 0;
+    this.isFulfilled = false;
 }
 Cost.prototype = {
     updateFulfilledGems: function(gemType, amount){
@@ -462,6 +463,11 @@ Cost.prototype = {
             case GemTypes.Blue: this.blueFulfilled = amount; break;
             case GemTypes.Purple: this.purpleFulfilled = amount; break;
         }
+        this.isFulfilled = (this.redFulfilled>=this.redCost && 
+                            this.yellowFulfilled>=this.yellowCost && 
+                            this.greenFulfilled>=this.greenCost && 
+                            this.blueFulfilled>=this.blueCost && 
+                            this.purpleFulfilled>=this.purpleCost);
         //light up if cost completely fulfilled
     },
     clearFulfilledGems: function(){
@@ -483,11 +489,28 @@ Power.prototype = {
     reset: function()
     {
         this.cost.clearFulfilledGems();
+        this.backImage.image = queue.getResult("powerBaseDimmed");
+    },
+    updateCost: function(redGemAmt,yellowGemAmt,greenGemAmt,blueGemAmt,purpleGemAmt)
+    {
+        this.cost.updateFulfilledGems(GemTypes.Red, redGemAmt);
+        this.cost.updateFulfilledGems(GemTypes.Yellow, yellowGemAmt);
+        this.cost.updateFulfilledGems(GemTypes.Green, greenGemAmt);
+        this.cost.updateFulfilledGems(GemTypes.Blue, blueGemAmt);
+        this.cost.updateFulfilledGems(GemTypes.Purple, purpleGemAmt);
+        if(this.cost.isFulfilled)
+        {
+            this.backImage.image = queue.getResult("powerBase");
+        }
+        else
+        {
+            this.backImage.image = queue.getResult("powerBaseDimmed");
+        }
     },
     setupDisplay: function()
     {
         this.container = new createjs.Container();
-        this.backImage = new createjs.Bitmap(queue.getResult("powerBase"));
+        this.backImage = new createjs.Bitmap(queue.getResult("powerBaseDimmed"));
         this.label = new createjs.Text(this.labelText, "12px Arial", "#fff");
         this.container.addChild(this.backImage, this.label);
         var y = 20;
@@ -599,6 +622,13 @@ PlayerClass.prototype= {
         this.power4.setupDisplay();
         this.power4.container.y = 3*(powerHeight+pad);
         this.container.addChild(this.power1.container, this.power2.container,this.power3.container,this.power4.container);
+    },
+    updatePowers: function(redGemAmt, yellowGemAmt, greenGemAmt, blueGemAmt, purpleGemAmt)
+    {
+        this.power1.updateCost(redGemAmt, yellowGemAmt, greenGemAmt, blueGemAmt, purpleGemAmt);
+        this.power2.updateCost(redGemAmt, yellowGemAmt, greenGemAmt, blueGemAmt, purpleGemAmt);
+        this.power3.updateCost(redGemAmt, yellowGemAmt, greenGemAmt, blueGemAmt, purpleGemAmt);
+        this.power4.updateCost(redGemAmt, yellowGemAmt, greenGemAmt, blueGemAmt, purpleGemAmt);
     }
 }
     //region Class 1 
@@ -689,12 +719,24 @@ Inventory.prototype = {
         console.log("add " + amount + " " + gemType + " gems");
         switch(gemType)
         {
-            case GemTypes.Red: this.RedGems+=1; this.redAmt.text = ""+this.RedGems; break;
-            case GemTypes.Yellow: this.YellowGems+=1; this.yellowAmt.text = ""+this.YellowGems; break;
-            case GemTypes.Green: this.GreenGems+=1; this.greenAmt.text = ""+this.GreenGems; break;
-            case GemTypes.Blue: this.BlueGems+=1; this.blueAmt.text = ""+this.BlueGems; break;
-            case GemTypes.Purple: this.PurpleGems+=1; this.purpleAmt.text = ""+this.PurpleGems; break;
-            case GemTypes.Rock: this.RockGems+=1; this.rockAmt.text = ""+this.RockGems; break;
+            case GemTypes.Red: this.RedGems+=amount; this.redAmt.text = ""+this.RedGems; break;
+            case GemTypes.Yellow: this.YellowGems+=amount; this.yellowAmt.text = ""+this.YellowGems; break;
+            case GemTypes.Green: this.GreenGems+=amount; this.greenAmt.text = ""+this.GreenGems; break;
+            case GemTypes.Blue: this.BlueGems+=amount; this.blueAmt.text = ""+this.BlueGems; break;
+            case GemTypes.Purple: this.PurpleGems+=amount; this.purpleAmt.text = ""+this.PurpleGems; break;
+            case GemTypes.Rock: this.RockGems+=amount; this.rockAmt.text = ""+this.RockGems; break;
+        }
+    },
+    removeGems: function(gemType, amount)
+    {
+        switch(gemType)
+        {
+            case GemTypes.Red: this.RedGems-=amount; this.redAmt.text = ""+this.RedGems; break;
+            case GemTypes.Yellow: this.YellowGems-=amount; this.yellowAmt.text = ""+this.YellowGems; break;
+            case GemTypes.Green: this.GreenGems-=amount; this.greenAmt.text = ""+this.GreenGems; break;
+            case GemTypes.Blue: this.BlueGems-=amount; this.blueAmt.text = ""+this.BlueGems; break;
+            case GemTypes.Purple: this.PurpleGems-=amount; this.purpleAmt.text = ""+this.PurpleGems; break;
+            case GemTypes.Rock: this.RockGems-=amount; this.rockAmt.text = ""+this.RockGems; break;
         }
     },
     reset: function()
@@ -782,6 +824,16 @@ Player.prototype = {
     {
         this.healthBar.scaleY = -((this.health/BASE_PLAYER_HEALTH)*HEALTH_BAR_HEIGHT);
     },
+    addGemsToInventory: function(gemType, amount)
+    {
+        this.inventory.addGems(gemType, amount);
+        this.playerClass.updatePowers(this.inventory.RedGems, this.inventory.YellowGems,this.inventory.GreenGems,this.inventory.BlueGems,this.inventory.PurpleGems);
+    },
+    removeGemsFromInventory: function(gemType, amount)
+    {
+        this.inventory.removeGems(gemType, amount);
+        this.playerClass.updatePowers(this.inventory.RedGems, this.inventory.YellowGems,this.inventory.GreenGems,this.inventory.BlueGems,this.inventory.PurpleGems);
+    },
     setupHealthBar: function()
     {
         this.healthBarContainer = new createjs.Container();
@@ -803,6 +855,10 @@ Player.prototype = {
         this.inventory.setupDisplay(isOnLeft);
         this.playerClass.setupDisplay();
         this.playerClass.container.y = canvasHeight - 320;
+        this.playerClass.power1.container.on("click", executePower, null, false, {player:this, power:this.playerClass.power1});
+        this.playerClass.power2.container.on("click", executePower, null, false, {player:this, power:this.playerClass.power2});
+        this.playerClass.power3.container.on("click", executePower, null, false, {player:this, power:this.playerClass.power3});
+        this.playerClass.power4.container.on("click", executePower, null, false, {player:this, power:this.playerClass.power4});
         if(isOnLeft)
         {
             this.healthBarContainer.x = (PLAYER_DISPLAY_WIDTH - (HEALTH_BAR_WIDTH + (2*HEALTH_BAR_PADDING)));
@@ -1298,6 +1354,37 @@ function gameStateSwitch()
 //endregion
 /*----------------------------Game Play----------------------------*/
 //region gameplay
+function executePower(evt, data)
+{
+    console.log("player " + player + " power " + power);
+    console.log("execute power");
+    var player = data.player;
+    var power = data.power;
+    if(player === currentPlayer)
+    {
+        if(power.cost.isFulfilled)
+        {
+            console.log("executed");
+            power.execute();
+            console.log("remove cost gems");
+            player.removeGemsFromInventory(GemTypes.Red, power.cost.redCost);
+            player.removeGemsFromInventory(GemTypes.Yellow, power.cost.yellowCost);
+            player.removeGemsFromInventory(GemTypes.Green, power.cost.greenCost);
+            player.removeGemsFromInventory(GemTypes.Blue, power.cost.blueCost);
+            player.removeGemsFromInventory(GemTypes.Purple, power.cost.purpleCost);
+            console.log("done removing cost gems");
+        }
+        else
+        {
+            console.log("cost not fulfilled");   
+        }
+    }
+    else
+    {
+        console.log("not current player");
+    }
+}
+
 function otherPlayerTurn()
 {
     if(currentPlayer === player1)
