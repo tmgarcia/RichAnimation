@@ -9,12 +9,14 @@ var HEALTH_BAR_HEIGHT = 250;
 var HEALTH_BAR_PADDING = 3;
 var PLAYER_DISPLAY_WIDTH = 150;
 
+var INVENTORY_TEXT_SIZE = 18;
+
 var BOARD_WIDTH = 10;//in squares
 var BOARD_HEIGHT = 10;//in squares
 var BOARD_FRAME_WIDTH = 5;
 var BOARD_FRAME_HEIGHT = 5;
-var BOARD_SQUARE_WIDTH = 25;
-var BOARD_SQUARE_HEIGHT = 25;
+var BOARD_SQUARE_WIDTH = 35;
+var BOARD_SQUARE_HEIGHT = 35;
 var BOARD_SQUARE_SPACING = 5;
 var GEM_HEIGHT = BOARD_SQUARE_HEIGHT;
 var GEM_WIDTH = BOARD_SQUARE_WIDTH;
@@ -41,7 +43,7 @@ var KC_D = 68;
 var KC_SPACE = 32;
 var KC_SHIFT = 16;
 
-var SCREEN_PADDING = 50;
+var SCREEN_PADDING = 40;
 
 var canvasWidth = 800;
 var canvasHeight = 600;
@@ -74,7 +76,9 @@ manifest = [
     {src:"gemPurple.png", id:"gemPurple"},
     {src:"gemRock.png", id:"gemRock"},
     {src:"gemDamage.png", id:"gemDamage"},
-    {src:"gemRainbow.png", id:"gemRainbow"}
+    {src:"gemRainbow.png", id:"gemRainbow"},
+    {src:"powerBase.png", id:"powerBase"},
+    {src:"noCostSlot.png", id:"noCostSlot"}
 ];
 
 /*------------------------------Objects------------------------------*/
@@ -437,6 +441,89 @@ Power.prototype = {
     reset: function()
     {
         this.cost.clearFulfilledGems();
+    },
+    setupDisplay: function()
+    {
+        this.container = new createjs.Container();
+        this.backImage = new createjs.Bitmap(queue.getResult("powerBase"));
+        this.label = new createjs.Text(this.labelText, "12px Arial", "#fff");
+        this.container.addChild(this.backImage, this.label);
+        var y = 20;
+        if(this.cost.redCost>0)
+        {
+            this.redCostText = new createjs.Text(""+this.cost.redCost, "20px Arial", "#000");
+            this.redCostText.textAlign = "center";
+            this.redCostText.x = 4;
+            this.redCostText.y = y;
+            this.container.addChild(this.redCostText);
+        }
+        else
+        {
+            this.noRed = new createjs.Bitmap(queue.getResult("noCostSlot"));
+            this.noRed.x = 4;
+            this.noRed.y = y;
+            this.container.addChild(this.noRed);
+        }
+        if(this.cost.yellowCost>0)
+        {
+            this.yellowCostText = new createjs.Text(""+this.cost.yellowCost, "20px Arial", "#000");
+            this.yellowCostText.textAlign = "center";
+            this.yellowCostText.x = 2*(4) + 25;
+            this.yellowCostText.y = y;
+            this.container.addChild(this.yellowCostText);
+        }
+        else
+        {
+            this.noYellow = new createjs.Bitmap(queue.getResult("noCostSlot"));
+            this.noYellow.x = 2*(4) + 25;
+            this.noYellow.y = y;
+            this.container.addChild(this.noYellow);
+        }
+        if(this.cost.greenCost>0)
+        {
+            this.greenCostText = new createjs.Text(""+this.cost.greenCost, "20px Arial", "#000");
+            this.greenCostText.textAlign = "center";
+            this.greenCostText.x = 3*(4) + 2*(25);
+            this.greenCostText.y = y;
+            this.container.addChild(this.greenCostText);
+        }
+        else
+        {
+            this.noGreen = new createjs.Bitmap(queue.getResult("noCostSlot"));
+            this.noGreen.x = 3*(4) + 2*(25);
+            this.noGreen.y = y;
+            this.container.addChild(this.noGreen);
+        }
+        if(this.cost.blueCost>0)
+        {
+            this.blueCostText = new createjs.Text(""+this.cost.blueCost, "20px Arial", "#000");
+            this.blueCostText.textAlign = "center";
+            this.blueCostText.x =4*(4) + 3*(25);
+            this.blueCostText.y = y;
+            this.container.addChild(this.blueCostText);
+        }
+        else
+        {
+            this.noBlue = new createjs.Bitmap(queue.getResult("noCostSlot"));
+            this.noBlue.x = 4*(4) + 3*(25);
+            this.noBlue.y = y;
+            this.container.addChild(this.noBlue);
+        }
+        if(this.cost.purpleCost>0)
+        {
+            this.purpleCostText = new createjs.Text(""+this.cost.purpleCost, "20px Arial", "#000");
+            this.purpleCostText.textAlign = "center";
+            this.purpleCostText.x = (150-25)-4;
+            this.purpleCostText.y = y;
+            this.container.addChild(this.purpleCostText);
+        }
+        else
+        {
+            this.noPurple = new createjs.Bitmap(queue.getResult("noCostSlot"));
+            this.noPurple.x = (150-25)-4;
+            this.noPurple.y = y;
+            this.container.addChild(this.noPurple);
+        }
     }
 };
 //endregion
@@ -455,6 +542,20 @@ PlayerClass.prototype= {
         this.power2.reset();
         this.power3.reset();
         this.power4.reset();
+    },
+    setupDisplay: function()
+    {
+        this.container = new createjs.Container();
+        var powerHeight = 50;
+        var pad = 10;
+        this.power1.setupDisplay();
+        this.power2.setupDisplay();
+        this.power2.container.y = powerHeight+pad;
+        this.power3.setupDisplay();
+        this.power3.container.y = 2*(powerHeight+pad);
+        this.power4.setupDisplay();
+        this.power4.container.y = 3*(powerHeight+pad);
+        this.container.addChild(this.power1.container, this.power2.container,this.power3.container,this.power4.container);
     }
 }
     //region Class 1 
@@ -462,7 +563,8 @@ PlayerClass.prototype= {
         //Remove all of [x] gem from board
         function C1Power1()
         {
-            var cost = new Cost(0,0,0,0,0);
+            this.labelText = "Remove all Blue";
+            var cost = new Cost(0,3,0,4,2);
             Power.call(this, cost);
         }
         C1Power1.prototype = {
@@ -476,7 +578,8 @@ PlayerClass.prototype= {
             //Heal [x] life points
             function C1Power2()
             {
-                var cost = new Cost(0,0,0,0,0);
+                this.labelText = "Heal 5";
+                var cost = new Cost(5,3,0,0,1);
                 Power.call(this, cost);
             }
             C1Power2.prototype = {
@@ -490,7 +593,8 @@ PlayerClass.prototype= {
             //Convert all of enemy’s [x color] into [y color]
             function C1Power3()
             {
-                var cost = new Cost(0,0,0,0,0);
+                this.labelText = "Enemy's red to blue";
+                var cost = new Cost(0,1,4,5,0);
                 Power.call(this, cost);
             }
             C1Power3.prototype = {
@@ -504,7 +608,8 @@ PlayerClass.prototype= {
             //Hurt enemy [x] amount
             function C1Power4()
             {
-                var cost = new Cost(0,0,0,0,0);
+                this.labelText = "Hurt enemy 5";
+                var cost = new Cost(3,0,2,2,2);
                 Power.call(this, cost);
             }
             C1Power4.prototype = {
@@ -576,36 +681,36 @@ Inventory.prototype = {
         }
         this.redImage = new createjs.Bitmap(queue.getResult("gemRed"));
         this.redImage.x = imageX;
-        this.redAmt = new createjs.Text("0", "12px Arial", "#ffffff");
+        this.redAmt = new createjs.Text("0", ""+INVENTORY_TEXT_SIZE+"px Arial", "#ffffff");
         this.redAmt.x = textPad;
         this.yellowImage = new createjs.Bitmap(queue.getResult("gemYellow"));
         this.yellowImage.x = imageX;
         this.yellowImage.y = GEM_HEIGHT + imagePad;
-        this.yellowAmt = new createjs.Text("0", "12px Arial", "#ffffff");
+        this.yellowAmt = new createjs.Text("0", ""+INVENTORY_TEXT_SIZE+"px Arial", "#ffffff");
         this.yellowAmt.x = textPad;
         this.yellowAmt.y = this.yellowImage.y;
         this.greenImage = new createjs.Bitmap(queue.getResult("gemGreen"));
         this.greenImage.x = imageX;
         this.greenImage.y = 2*(GEM_HEIGHT + imagePad);
-        this.greenAmt = new createjs.Text("0", "12px Arial", "#ffffff");
+        this.greenAmt = new createjs.Text("0", ""+INVENTORY_TEXT_SIZE+"px Arial", "#ffffff");
         this.greenAmt.x = textPad;
         this.greenAmt.y = this.greenImage.y;
         this.blueImage = new createjs.Bitmap(queue.getResult("gemBlue"));
         this.blueImage.y = 3*(GEM_HEIGHT + imagePad);
         this.blueImage.x = imageX;
-        this.blueAmt = new createjs.Text("0", "12px Arial", "#ffffff");
+        this.blueAmt = new createjs.Text("0", ""+INVENTORY_TEXT_SIZE+"px Arial", "#ffffff");
         this.blueAmt.x = textPad;
         this.blueAmt.y = this.blueImage.y;
         this.purpleImage = new createjs.Bitmap(queue.getResult("gemPurple"));
         this.purpleImage.y = 4*(GEM_HEIGHT + imagePad);
         this.purpleImage.x = imageX;
-        this.purpleAmt = new createjs.Text("0", "12px Arial", "#ffffff");
+        this.purpleAmt = new createjs.Text("0", ""+INVENTORY_TEXT_SIZE+"px Arial", "#ffffff");
         this.purpleAmt.x = textPad;
         this.purpleAmt.y = this.purpleImage.y;
         this.rockImage = new createjs.Bitmap(queue.getResult("gemRock"));
         this.rockImage.y = 5*(GEM_HEIGHT + imagePad);
         this.rockImage.x = imageX;
-        this.rockAmt = new createjs.Text("0", "12px Arial", "#ffffff");
+        this.rockAmt = new createjs.Text("0", ""+INVENTORY_TEXT_SIZE+"px Arial", "#ffffff");
         this.rockAmt.x = textPad;
         this.rockAmt.y = this.rockImage.y;  this.container.addChild(this.redImage,this.redAmt,this.yellowImage,this.yellowAmt,this.greenImage,this.greenAmt,this.blueImage,this.blueAmt,this.purpleImage,this.purpleAmt,this.rockImage,this.rockAmt);
     }
@@ -652,6 +757,8 @@ Player.prototype = {
         this.updateHealthBar();
         //this.healthBarContainer.y = 50;
         this.inventory.setupDisplay(isOnLeft);
+        this.playerClass.setupDisplay();
+        this.playerClass.container.y = canvasHeight - 220;
         if(isOnLeft)
         {
             this.healthBarContainer.x = (PLAYER_DISPLAY_WIDTH - (HEALTH_BAR_WIDTH + (2*HEALTH_BAR_PADDING)));
@@ -660,7 +767,7 @@ Player.prototype = {
         {
             this.inventory.container.x = PLAYER_DISPLAY_WIDTH - 50;
         }
-        this.container.addChild(this.healthBarContainer, this.inventory.container);
+        this.container.addChild(this.healthBarContainer, this.inventory.container, this.playerClass.container);
     }
 };
 //endregion
@@ -1176,6 +1283,8 @@ function handleMove()
     else
     {
         selectedGem1.unhighlight();
+        selectedGem1 = null;
+        selectedGem2 = null;
         //selectedGem2.unhighlight();
         //un-highlight gems, play 'you fail at this' noise
     }
@@ -1202,6 +1311,8 @@ function swapComplete()
         else
         {
             swapGems(selectedGem1, selectedGem2);
+            selectedGem1 = null;
+            selectedGem2 = null;
         }
     }
 }
