@@ -81,7 +81,7 @@ function extend(base, sub) {
   });
 }
 var GemTypes = { Red:0, Yellow:1, Green:2, Blue:3, Purple:4, Rock:5, Damage:6, Rainbow:7};
-var SquareContents = {Gem:0, Empty:1};
+var SquareContents = {HasGem:8, Empty:9};
 //region /*---Gems---*/  
 function GemAmount(gemType, amount) 
 {
@@ -113,10 +113,8 @@ Gem.prototype = {
 };
 function moveGem(gem, newX, newY)
 {
-    board.squares[gem.x][gem.y] = SquareContents.Empty;
-    board.squares[newX][newY] = gem;
-    gem.x = newX;
-    gem.y = newY;
+    moveTween = createjs.Tween.get(gem.image, {loop:false})
+    .to({x:newX, y:newY}, 500, createjs.Ease.bounceOut);
     //animate moving of gem
 }
 function gemsAreAdjacent(gemA, gemB)
@@ -131,6 +129,7 @@ function gemsAreAdjacent(gemA, gemB)
 }
 function shatterGem(gem)
 {
+    console.log("shattering gem");
     board.squares[gem.x][gem.y] = SquareContents.Empty;
     gemTween = createjs.Tween.get(gem.image, {loop:false})
         .to({rotation:360}, 1500, createjs.Ease.bounceOut)
@@ -488,6 +487,7 @@ function getBoardSquare(boardArray, x, y)
     {
         square = boardArray[x][y];
     }
+    return square;
 }
 function getSquareDisplayCoords(gemX, gemY)
 {
@@ -547,7 +547,7 @@ GameBoard.prototype = {
                 {
                     if((target.matches(getBoardSquare(squaresCopy, x+1, y))) && (target.matches(getBoardSquare(squaresCopy, x+2, y))) )
                     {
-                        var matchSet = new MatchSet(targetGem.type);//matchSet is new MatchSet
+                        var matchSet = new MatchSet(target.type);//matchSet is new MatchSet
                         var xOffset = 0;
                         while(target.matches(getBoardSquare(squaresCopy, x+xOffset, y)))//[gem at x+xOffset, y] matches targetGem)
                         {
@@ -556,6 +556,7 @@ GameBoard.prototype = {
                             xOffset++;
                             matchSet.numGems++; //matchSet's number of gems ++
                         }
+                        console.log(matchSet.gems.length);
                         matchSets[matchSets.length] = matchSet;
                     }
                 }
@@ -563,7 +564,7 @@ GameBoard.prototype = {
                 {
                     if( (target.matches(getBoardSquare(squaresCopy, x, y+1))) && (target.matches(getBoardSquare(squaresCopy, x, y+2))) )
                     {
-                        var verticalMatchSet = new MatchSet(targetGem.type);//matchSet is new MatchSet
+                        var verticalMatchSet = new MatchSet(target.type);//matchSet is new MatchSet
                         var yOffset = 0;
                         while(target.matches(getBoardSquare(squaresCopy, x, y+yOffset)))
                         {
@@ -765,18 +766,14 @@ function setupButtons()
 }
 function setupGameObjects()
 {
-    console.log("p1 class");
     var p1Class = new Class1();
-    console.log("p2 class");
     var p2Class = new Class1();
-    console.log("player 1");
     player1 = new Player(p1Class);
-    console.log("player 2");
     player2 = new Player(p2Class);
-    console.log("new board");
     board = new GameBoard();
-    console.log("fill board");
     board.fill();
+    selectedGem1 = null;
+    selectedGem2 = null;
 }
 //endregion
 /*----------------------------Main Loop----------------------------*/
@@ -938,8 +935,8 @@ function handleGemClick(evt, data)
 }
 function swapGems(gemA, gemB)
 {
-    squares[gemA.x][gemA.y] = gemB;
-    squares[gemB.x][gemB.y] = gemA;
+    board.squares[gemA.x][gemA.y] = gemB;
+    board.squares[gemB.x][gemB.y] = gemA;
     var tempX = gemA.x;
     var tempY = gemA.y;
     gemA.x = gemB.x;
@@ -957,16 +954,19 @@ function handleMove()
     {
         swapGems(selectedGem1, selectedGem2);
         var matchSets = board.findGemMatches();
+        console.log("match sets: " + matchSets.length);
         if(matchSets.length >0)
         {
+            console.log("match sets: " + matchSets.length);
             matchedGemsToBreak = length;
-            var matchSet;
-            for(matchSet in matchSets)
+            for(var j = 0; j < matchSets.length; j++)
             {
-                var gem;
-                for(gem in matchSet)
+                var matchSet = matchSets[j];
+                console.log("match set length: " + matchSet.gems.length);
+                console.log(matchSet.gems.valueOf());
+                for(var i = 0; i < matchSet.gems.length; i++)
                 {
-                    shatterGem(gem);
+                    shatterGem(matchSet.gems[i]);
                 }
             }
         }
@@ -983,6 +983,7 @@ function handleMove()
 }
 function matchedGemBroken()
 {
+    console.log("matched gem broken " + matchedGemsToBreak);
     matchedGemsToBreak -= 1;
     if(matchedGemsToBreak===0)
     {
