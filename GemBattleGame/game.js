@@ -25,6 +25,9 @@ var GEM_WIDTH = BOARD_SQUARE_WIDTH;
 
 var RAINBOW_GEM_CHANCE = 0.05;
 
+var JModeActive = false;
+var JModeAdd = 10;
+
 var allLoadingComplete;
 
 var selectedGem1, selectedGem2;
@@ -41,6 +44,7 @@ var KC_W = 87;
 var KC_A = 65;
 var KC_S = 83;
 var KC_D = 68;
+var KC_J = 74;
 
 var KC_SPACE = 32;
 var KC_SHIFT = 16;
@@ -641,8 +645,9 @@ PlayerClass.prototype= {
             Power.call(this, cost);
         }
         C1Power1.prototype = {
-            execute: function(){
+            execute: function(player){
                 //Remove all of [x] gem from board
+                removeTypeFromBoard(GemTypes.Blue)
             }
         };
         extend(Power, C1Power1);
@@ -656,8 +661,10 @@ PlayerClass.prototype= {
                 Power.call(this, cost);
             }
             C1Power2.prototype = {
-                execute: function(){
+                execute: function(player){
                     //Heal [x] life points
+                    player.addHealth(5);
+                    otherPlayerTurn();
                 }
             };
             extend(Power, C1Power2);
@@ -671,8 +678,13 @@ PlayerClass.prototype= {
                 Power.call(this, cost);
             }
             C1Power3.prototype = {
-                execute: function(){
-                    //Convert all of enemy’s [x color] into [y color]
+                execute: function(player){
+                    var otherPlayer = (player===player1)? player2: player1;
+                    var numRed = otherPlayer.inventory.RedGems;
+                    var numBlue = otherPlayer.inventory.BlueGems;
+                    otherPlayer.inventory.modifyGemAmount(GemTypes.Red, numBlue);
+                    otherPlayer.inventory.modifyGemAmount(GemTypes.Blue, numRed);
+                    otherPlayerTurn();
                 }
             };
             extend(Power, C1Power3);
@@ -681,13 +693,15 @@ PlayerClass.prototype= {
             //Hurt enemy [x] amount
             function C1Power4()
             {
-                this.labelText = "Hurt enemy 5";
+                this.labelText = "Hurt enemy 10";
                 var cost = new Cost(3,0,2,2,2);
                 Power.call(this, cost);
             }
             C1Power4.prototype = {
-                execute: function(){
-                    //Hurt enemy [x] amount
+                execute: function(player){
+                    var otherPlayer = (player===player1)? player2: player1;
+                    otherPlayer.decreaseHealth(10);
+                    otherPlayerTurn();
                 }
             };
             extend(Power, C1Power4);
@@ -737,6 +751,18 @@ Inventory.prototype = {
             case GemTypes.Blue: this.BlueGems-=amount; this.blueAmt.text = ""+this.BlueGems; break;
             case GemTypes.Purple: this.PurpleGems-=amount; this.purpleAmt.text = ""+this.PurpleGems; break;
             case GemTypes.Rock: this.RockGems-=amount; this.rockAmt.text = ""+this.RockGems; break;
+        }
+    },
+    modifyGemAmount: function(gemType, newAmount)
+    {
+        switch(gemType)
+        {
+            case GemTypes.Red: this.RedGems=newAmount; this.redAmt.text = ""+this.RedGems; break;
+            case GemTypes.Yellow: this.YellowGems=newAmount; this.yellowAmt.text = ""+this.YellowGems; break;
+            case GemTypes.Green: this.GreenGems=newAmount; this.greenAmt.text = ""+this.GreenGems; break;
+            case GemTypes.Blue: this.BlueGems=newAmount; this.blueAmt.text = ""+this.BlueGems; break;
+            case GemTypes.Purple: this.PurpleGems=newAmount; this.purpleAmt.text = ""+this.PurpleGems; break;
+            case GemTypes.Rock: this.RockGems=newAmount; this.rockAmt.text = ""+this.RockGems; break;
         }
     },
     reset: function()
@@ -813,6 +839,11 @@ Player.prototype = {
         this.health -= amount;
         this.updateHealthBar();
         //do something if health <= 0
+    },
+    addHealth: function(amount)
+    {
+        this.health += amount;
+        this.updateHealthBar();
     },
     reset: function()
     {
@@ -1042,6 +1073,34 @@ GameBoard.prototype = {
             }
         }
         return false;
+    },
+    findAllOfGemType: function(gemType)
+    {
+        var gemsOfType = [];
+        for(var x = 0; x < BOARD_WIDTH; x++)
+        {
+            for(var y = 0; y < BOARD_HEIGHT; y++)
+            {
+                if(this.squares[x][y].type === gemType)
+                {
+                    gemsOfType[gemsOfType.length] = this.squares[x][y];    
+                }
+            }
+        }
+        return gemsOfType;
+    }
+}
+function removeTypeFromBoard(gemType)
+{
+    var gemsOfType = board.findAllOfGemType(gemType);
+    if(gemsOfType.length > 0)
+    {
+        matchedGemsToBreak = gemsOfType.length;
+        waitingForMatchBreaks = true;
+        for(var i = 0; i < gemsOfType.length; i++)
+        {
+            shatterGem(gemsOfType[i], null);
+        }
     }
 }
 //endregion
@@ -1265,6 +1324,7 @@ function handleKeyUp(evt)
         case KC_D:	console.log("D ("+evt.keyCode+") up"); break;
         case KC_SPACE:	console.log("SPACE ("+evt.keyCode+") up"); break;
         case KC_SHIFT:	console.log("SHIFT ("+evt.keyCode+") up"); break;
+        case KC_J: toggleJMode(); break;
     }
 }
 
@@ -1351,6 +1411,44 @@ function gameStateSwitch()
     }
 }
 
+function toggleJMode()
+{
+    if(JModeActive)
+    {
+        JModeActive = false;
+        player1.removeGemsFromInventory(GemTypes.Red, JModeAdd);
+        player1.removeGemsFromInventory(GemTypes.Yellow, JModeAdd);
+        player1.removeGemsFromInventory(GemTypes.Green, JModeAdd);
+        player1.removeGemsFromInventory(GemTypes.Blue, JModeAdd);
+        player1.removeGemsFromInventory(GemTypes.Purple, JModeAdd);
+        player1.removeGemsFromInventory(GemTypes.Rock, JModeAdd);
+        
+        player2.removeGemsFromInventory(GemTypes.Red, JModeAdd);
+        player2.removeGemsFromInventory(GemTypes.Yellow, JModeAdd);
+        player2.removeGemsFromInventory(GemTypes.Green, JModeAdd);
+        player2.removeGemsFromInventory(GemTypes.Blue, JModeAdd);
+        player2.removeGemsFromInventory(GemTypes.Purple, JModeAdd);
+        player2.removeGemsFromInventory(GemTypes.Rock, JModeAdd);
+    }
+    else
+    {
+        JModeActive = true;
+        player1.addGemsToInventory(GemTypes.Red, JModeAdd);
+        player1.addGemsToInventory(GemTypes.Yellow, JModeAdd);
+        player1.addGemsToInventory(GemTypes.Green, JModeAdd);
+        player1.addGemsToInventory(GemTypes.Blue, JModeAdd);
+        player1.addGemsToInventory(GemTypes.Purple, JModeAdd);
+        player1.addGemsToInventory(GemTypes.Rock, JModeAdd);
+        
+        player2.addGemsToInventory(GemTypes.Red, JModeAdd);
+        player2.addGemsToInventory(GemTypes.Yellow, JModeAdd);
+        player2.addGemsToInventory(GemTypes.Green, JModeAdd);
+        player2.addGemsToInventory(GemTypes.Blue, JModeAdd);
+        player2.addGemsToInventory(GemTypes.Purple, JModeAdd);
+        player2.addGemsToInventory(GemTypes.Rock, JModeAdd);
+    }
+}
+
 //endregion
 /*----------------------------Game Play----------------------------*/
 //region gameplay
@@ -1365,7 +1463,7 @@ function executePower(evt, data)
         if(power.cost.isFulfilled)
         {
             console.log("executed");
-            power.execute();
+            power.execute(player);
             console.log("remove cost gems");
             player.removeGemsFromInventory(GemTypes.Red, power.cost.redCost);
             player.removeGemsFromInventory(GemTypes.Yellow, power.cost.yellowCost);
