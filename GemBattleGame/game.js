@@ -8,14 +8,14 @@ var BOARD_WIDTH = 10;//in squares
 var BOARD_HEIGHT = 10;//in squares
 var BOARD_FRAME_WIDTH = 5;
 var BOARD_FRAME_HEIGHT = 5;
-var BOARD_SQUARE_WIDTH = 10;
-var BOARD_SQUARE_HEIGHT = 10;
+var BOARD_SQUARE_WIDTH = 25;
+var BOARD_SQUARE_HEIGHT = 25;
 var BOARD_SQUARE_SPACING = 5;
 var RAINBOW_GEM_CHANCE = 0.1;
 
 var selectedGem1, selectedGem2;
-
-var player1, player2;
+var matchedGemsToBreak;
+var player1, player2, currentPlayer;
 var board;
 
 var KC_LEFT = 37;
@@ -62,15 +62,16 @@ manifest = [
     {src:"gemPurple.png", id:"gemPurple"},
     {src:"gemRock.png", id:"gemRock"},
     {src:"gemDamage.png", id:"gemDamage"},
-    {src:"gemRainbow.png", id:"gemRainbow"},
-
+    {src:"gemRainbow.png", id:"gemRainbow"}
 ];
 
 /*------------------------------Objects------------------------------*/
+//region Objects 
 function extend(base, sub) {
   var origProto = sub.prototype;
   sub.prototype = Object.create(base.prototype);
-  for (var key in origProto)  {
+    var key;
+  for (key in origProto)  {
      sub.prototype[key] = origProto[key];
   }
   sub.prototype.constructor = sub;
@@ -98,7 +99,7 @@ Gem.prototype = {
         var match = false;
         if(otherGem instanceof Gem)
         {
-            match =  (this.type == otherGem.type);
+            match =  (this.type === otherGem.type);
         }
         return match;
     },
@@ -109,7 +110,187 @@ Gem.prototype = {
     {
         
     }
+};
+function moveGem(gem, newX, newY)
+{
+    board.squares[gem.x][gem.y] = SquareContents.Empty;
+    board.squares[newX][newY] = gem;
+    gem.x = newX;
+    gem.y = newY;
+    //animate moving of gem
 }
+function gemsAreAdjacent(gemA, gemB)
+{
+    var adjacent = false;
+    if( (gemA.y === gemB.y && (gemA.x === gemB.x+1 || gemA.x === gemB.x-1)) ||
+       (gemA.x === gemB.x && (gemA.y === gemB.y+1 || gemA.y === gemB.y-1)))
+    {
+        adjacent = true;
+    }
+    return adjacent;
+}
+function shatterGem(gem)
+{
+    board.squares[gem.x][gem.y] = SquareContents.Empty;
+    gemTween = createjs.Tween.get(gem.image, {loop:false})
+        .to({rotation:360}, 1500, createjs.Ease.bounceOut)
+        .wait(500)
+        .to({y:canvasHeight+200, rotation:0}, 1000, createjs.Ease.backIn)
+        .call(gem.shatter)
+        .call(matchedGemBroken);
+}
+    //region Red 
+    function RedGem(x, y)
+    {
+        Gem.call(this, GemTypes.Red, x, y);
+    }
+    RedGem.prototype = {
+        shatter: function(player){
+            this.image.visible = false;
+            //animate breaking
+            //give player red gem
+        },
+        setupImage: function()
+        {
+            this.image = new createjs.Bitmap(queue.getResult("gemRed"));
+            this.image.on("click", handleGemClick, null, false, {gem:this});
+        }
+    };
+    extend(Gem, RedGem);
+    //endregion
+    //region Yellow 
+    function YellowGem(x, y)
+    {
+        Gem.call(this, GemTypes.Yellow, x, y);
+    }
+    YellowGem.prototype = {
+        shatter: function(player){
+            this.image.visible = false;
+            //animate breaking
+            //give player yellow gem
+        },
+        setupImage: function()
+        {
+            this.image = new createjs.Bitmap(queue.getResult("gemYellow"));
+            this.image.on("click", handleGemClick, null, false, {gem:this});
+        }
+    };
+    extend(Gem, YellowGem);
+    //endregion
+    //region Green 
+    function GreenGem(x, y)
+    {
+        Gem.call(this, GemTypes.Green, x, y);
+    }
+    GreenGem.prototype = {
+        shatter: function(player){
+            this.image.visible = false;
+            //animate breaking
+            //give player yellow gem
+        },
+        setupImage: function()
+        {
+            this.image = new createjs.Bitmap(queue.getResult("gemGreen"));
+            this.image.on("click", handleGemClick, null, false, {gem:this});
+        }
+    };
+    extend(Gem, GreenGem);
+    //endregion
+    //region Blue 
+    function BlueGem(x, y)
+    {
+        Gem.call(this, GemTypes.Blue, x, y);
+    }
+    BlueGem.prototype = {
+        shatter: function(player){
+            this.image.visible = false;
+            //animate breaking
+            //give player Blue gem
+        },
+        setupImage: function()
+        {
+            this.image = new createjs.Bitmap(queue.getResult("gemBlue"));
+            this.image.on("click", handleGemClick, null, false, {gem:this});
+        }
+    };
+    extend(Gem, BlueGem);
+    //endregion
+    //region Purple
+    function PurpleGem(x, y)
+    {
+        Gem.call(this, GemTypes.Purple, x, y);
+    }
+    PurpleGem.prototype = {
+        shatter: function(player){
+            this.image.visible = false;
+            //animate breaking
+            //give player Purple gem
+        },
+        setupImage: function()
+        {
+            this.image = new createjs.Bitmap(queue.getResult("gemPurple"));
+            this.image.on("click", handleGemClick, null, false, {gem:this});
+        }
+    };
+    extend(Gem, PurpleGem);
+    //endregion
+    //region Rock 
+    function RockGem(x, y)
+    {
+        Gem.call(this, GemTypes.Rock, x, y);
+    }
+    RockGem.prototype = {
+        shatter: function(player){
+            this.image.visible = false;
+            //animate breaking
+            //give player Rock gem
+        },
+        setupImage: function()
+        {
+            this.image = new createjs.Bitmap(queue.getResult("gemRock"));
+            this.image.on("click", handleGemClick, null, false, {gem:this});
+        }
+    };
+    extend(Gem, RockGem);
+    //endregion
+    //region Damage 
+    function DamageGem(x, y)
+    {
+        Gem.call(this, GemTypes.Damage, x, y);
+    }
+    DamageGem.prototype = {
+        shatter: function(player){
+            this.image.visible = false;
+            //animate breaking
+            //hurt other player
+        },
+        setupImage: function()
+        {
+            this.image = new createjs.Bitmap(queue.getResult("gemDamage"));
+            this.image.on("click", handleGemClick, null, false, {gem:this});
+        }
+    };
+    extend(Gem, DamageGem);
+    //endregion
+    //region Rainbow 
+    function RainbowGem(x, y)
+    {
+        Gem.call(this, GemTypes.Rainbow, x, y);
+    }
+    RainbowGem.prototype = {
+        shatter: function(player){
+            this.image.visible = false;
+            //animate breaking
+            //give player correct gem (pass type?)
+        },
+        setupImage: function()
+        {
+            this.image = new createjs.Bitmap(queue.getResult("gemRainbow"));
+            this.image.on("click", handleGemClick, null, false, {gem:this});
+        }
+    };
+    extend(Gem, RainbowGem);
+    //endregion
 function getRandomGem(x, y)
 {
     //Math.random(); 0-1
@@ -133,162 +314,9 @@ function getRandomGem(x, y)
             case GemTypes.Damage: gem = new DamageGem(x,y); break;    
         }
     }
+    gem.setupImage();
     return gem;
 }
-function moveGem(gem, newX, newY)
-{
-    board.squares[gem.x][gem.y] = SquareContents.Empty;
-    board.squares[newX][newY] = gem;
-    gem.x = newX;
-    gem.y = newY;
-    //animate moving of gem
-}
-function gemsAreAdjacent(gemA, gemB)
-{
-    var adjacent = false;
-    if( (gemA.y == gemB.y && (gemA.x == gemB.x+1 || gemA.x == gemB.x-1)) ||
-       (gemA.x == gemB.x && (gemA.y == gemB.y+1 || gemA.y == gemB.y-1)))
-    {
-        adjacent = true;
-    }
-    return adjacent;
-}
-    //region Red 
-    function RedGem(x, y)
-    {
-        Gem.call(this, GemTypes.Red, x, y);
-    }
-    RedGem.prototype = {
-        shatter: function(player){
-            //animate breaking
-            //give player red gem
-        },
-        setupImage: function()
-        {
-            this.image = new createjs.Bitmap(queue.getResult("gemRed"));
-        }
-    }
-    extend(Gem, RedGem);
-    //endregion
-    //region Yellow 
-    function YellowGem(x, y)
-    {
-        Gem.call(this, GemTypes.Yellow, x, y);
-    }
-    YellowGem.prototype = {
-        shatter: function(player){
-            //animate breaking
-            //give player yellow gem
-        },
-        setupImage: function()
-        {
-            this.image = new createjs.Bitmap(queue.getResult("gemYellow"));
-        }
-    }
-    extend(Gem, YellowGem);
-    //endregion
-    //region Green 
-    function GreenGem(x, y)
-    {
-        Gem.call(this, GemTypes.Green, x, y);
-    }
-    GreenGem.prototype = {
-        shatter: function(player){
-            //animate breaking
-            //give player yellow gem
-        },
-        setupImage: function()
-        {
-            this.image = new createjs.Bitmap(queue.getResult("gemGreen"));
-        }
-    }
-    extend(Gem, GreenGem);
-    //endregion
-    //region Blue 
-    function BlueGem(x, y)
-    {
-        Gem.call(this, GemTypes.Blue, x, y);
-    }
-    BlueGem.prototype = {
-        shatter: function(player){
-            //animate breaking
-            //give player Blue gem
-        },
-        setupImage: function()
-        {
-            this.image = new createjs.Bitmap(queue.getResult("gemBlue"));
-        }
-    }
-    extend(Gem, BlueGem);
-    //endregion
-    //region Purple
-    function PurpleGem(x, y)
-    {
-        Gem.call(this, GemTypes.Purple, x, y);
-    }
-    PurpleGem.prototype = {
-        shatter: function(player){
-            //animate breaking
-            //give player Purple gem
-        },
-        setupImage: function()
-        {
-            this.image = new createjs.Bitmap(queue.getResult("gemPurple"));
-        }
-    }
-    extend(Gem, PurpleGem);
-    //endregion
-    //region Rock 
-    function RockGem(x, y)
-    {
-        Gem.call(this, GemTypes.Rock, x, y);
-    }
-    RockGem.prototype = {
-        shatter: function(player){
-            //animate breaking
-            //give player Rock gem
-        },
-        setupImage: function()
-        {
-            this.image = new createjs.Bitmap(queue.getResult("gemRock"));
-        }
-    }
-    extend(Gem, RockGem);
-    //endregion
-    //region Damage 
-    function DamageGem(x, y)
-    {
-        Gem.call(this, GemTypes.Damage, x, y);
-    }
-    DamageGem.prototype = {
-        shatter: function(player){
-            //animate breaking
-            //hurt other player
-        },
-        setupImage: function()
-        {
-            this.image = new createjs.Bitmap(queue.getResult("gemDamage"));
-        }
-    }
-    extend(Gem, DamageGem);
-    //endregion
-    //region Rainbow 
-    function RainbowGem(x, y)
-    {
-        Gem.call(this, GemTypes.Rainbow, x, y);
-    }
-    RainbowGem.prototype = {
-        shatter: function(player){
-            //animate breaking
-            //give player correct gem (pass type?)
-        },
-        setupImage: function()
-        {
-            this.image = new createjs.Bitmap(queue.getResult("gemRainbow"));
-        }
-    }
-    extend(Gem, RainbowGem);
-    //endregion
 //endregion
 //region /*---Powers---*/
 function Cost(redCost, yellowCost, greenCost, blueCost, purpleCost)
@@ -308,11 +336,11 @@ Cost.prototype = {
     updateFulfilledGems: function(gemType, amount){
         switch(gemType)
         {
-            case GemTypes.Red: this.redFulfilled = amount;
-            case GemTypes.Yellow: this.yellowFulfilled = amount;    
-            case GemTypes.Green: this.greenFulfilled = amount;    
-            case GemTypes.Blue: this.blueFulfilled = amount;    
-            case GemTypes.Purple: this.purpleFulfilled = amount;  
+            case GemTypes.Red: this.redFulfilled = amount; break;
+            case GemTypes.Yellow: this.yellowFulfilled = amount; break;   
+            case GemTypes.Green: this.greenFulfilled = amount; break;
+            case GemTypes.Blue: this.blueFulfilled = amount; break;
+            case GemTypes.Purple: this.purpleFulfilled = amount; break;
         }
         //light up if cost completely fulfilled
     },
@@ -323,7 +351,7 @@ Cost.prototype = {
         this.blueFulfilled = 0;
         this.purpleFulfilled = 0;
     }
-}
+};
 function Power(cost)
 {
     this.cost = cost;
@@ -332,7 +360,7 @@ Power.prototype = {
     execute: function(){
         //execute power
     }
-}
+};
 //endregion
 //region /*---Classes---*/
 function PlayerClass(power1, power2, power3, power4)
@@ -354,7 +382,7 @@ function PlayerClass(power1, power2, power3, power4)
             execute: function(){
                 //Remove all of [x] gem from board
             }
-        }
+        };
         extend(Power, C1Power1);
         //endregion
         //region Power2 
@@ -368,7 +396,7 @@ function PlayerClass(power1, power2, power3, power4)
                 execute: function(){
                     //Heal [x] life points
                 }
-            }
+            };
             extend(Power, C1Power2);
         //endregion
         //region Power3 
@@ -382,7 +410,7 @@ function PlayerClass(power1, power2, power3, power4)
                 execute: function(){
                     //Convert all of enemy’s [x color] into [y color]
                 }
-            }
+            };
             extend(Power, C1Power3);
         //endregion
         //region Power4 
@@ -396,7 +424,7 @@ function PlayerClass(power1, power2, power3, power4)
                 execute: function(){
                     //Hurt enemy [x] amount
                 }
-            }
+            };
             extend(Power, C1Power4);
         //endregion
     function Class1()
@@ -425,20 +453,20 @@ Inventory.prototype = {
     {
         switch(gemType)
         {
-            case GemTypes.Red: this.RedGems++; break;
-            case GemTypes.Yellow: this.YellowGems++; break;
-            case GemTypes.Green: this.GreenGems++; break;
-            case GemTypes.Blue: this.BlueGems++; break;
-            case GemTypes.Purple: this.PurpleGems++; break;
-            case GemTypes.Rock: this.RockGems++; break;
+            case GemTypes.Red: this.RedGems+=1; break;
+            case GemTypes.Yellow: this.YellowGems+=1; break;
+            case GemTypes.Green: this.GreenGems+=1; break;
+            case GemTypes.Blue: this.BlueGems+=1; break;
+            case GemTypes.Purple: this.PurpleGems+=1; break;
+            case GemTypes.Rock: this.RockGems+=1; break;
         }
     }
-}
+};
 function Player(playerClass)
 {
     this.inventory = new Inventory();
     this.health = BASE_PLAYER_HEALTH;
-    this.class = playerClass;
+    this.playerClass = playerClass;
 }
 Player.prototype = {
     decreaseHealth: function(amount)
@@ -452,7 +480,7 @@ Player.prototype = {
 function getBoardSquare(boardArray, x, y)
 {
     var square;
-    if(x<0 || y<0 || x>=BOARD_WIDTH || y>=BOARDHEIGHT)
+    if(x<0 || y<0 || x>=BOARD_WIDTH || y>=BOARD_HEIGHT)
     {
         square = SquareContents.Empty;
     }
@@ -460,6 +488,13 @@ function getBoardSquare(boardArray, x, y)
     {
         square = boardArray[x][y];
     }
+}
+function getSquareDisplayCoords(gemX, gemY)
+{
+    var xPos = board.image.x + BOARD_FRAME_WIDTH + (gemX*BOARD_SQUARE_WIDTH) + (gemX*BOARD_SQUARE_SPACING);
+    var yPos = board.image.y + BOARD_FRAME_HEIGHT + (gemY*BOARD_SQUARE_HEIGHT) + (gemY*BOARD_SQUARE_SPACING);
+    var coordinate = {x:xPos, y:yPos};
+    return coordinate;
 }
 function MatchSet(gemType)
 {
@@ -470,7 +505,8 @@ function MatchSet(gemType)
 function GameBoard()
 {
     this.squares = new Array(BOARD_HEIGHT);
-    for(var i = 0; i < BOARD_HEIGHT; i++)
+    var i;
+    for(i = 0; i < BOARD_HEIGHT; i++)
     {
         this.squares[i] = new Array(BOARD_WIDTH);
     }
@@ -478,18 +514,21 @@ function GameBoard()
     this.height = (BOARD_FRAME_HEIGHT*2)+(BOARD_HEIGHT*BOARD_SQUARE_HEIGHT)+((BOARD_HEIGHT-1)*BOARD_SQUARE_SPACING);
     this.image = new createjs.Rectangle(0,0,this.width, this.height);
     this.container = new createjs.Container();
-    this.container.addChild(this.image);
+    //this.container.addChild(this.image);
 }
 GameBoard.prototype = {
     fill: function()
     {
-        for(var x = 0; x < BOARD_WIDTH; x++)
+        var x, y;
+        for(x = 0; x < BOARD_WIDTH; x++)
         {
-            for(var y = 0; y < BOARD_HEIGHT; y++)
+            for(y = 0; y < BOARD_HEIGHT; y++)
             {
                 this.squares[x][y] = getRandomGem(x, y);
-                this.squares[x][y].image.x = this.image.x + BOARD_FRAME_WIDTH + (x*BOARD_SQUARE_WIDTH) + (x*BOARD_SQUARE_SPACING);
-                this.squares[x][y].image.y = this.image.y + BOARD_FRAME_HEIGHT + (x*BOARD_SQUARE_HEIGHT) + (x*BOARD_SQUARE_SPACING);
+                
+                var coords = getSquareDisplayCoords(x, y);
+                this.squares[x][y].image.x = coords.x;
+                this.squares[x][y].image.y = coords.y;
                 this.container.addChild(this.squares[x][y].image);
             }
         }
@@ -498,12 +537,13 @@ GameBoard.prototype = {
     {
         var matchSets = []; //list of lists of gems
         var squaresCopy = this.squares.slice(0);
-        for(var x = 0; x < BOARD_WIDTH; x ++)
+        var x,y;
+        for(x = 0; x < BOARD_WIDTH; x ++)
         {
-            for(var y = 0; y < BOARD_HEIGHT; y++)
+            for(y = 0; y < BOARD_HEIGHT; y++)
             {
                 var target = squaresCopy[x][y];
-                if(target != SquareContents.Empty)//targetGem  is not an empty space)
+                if(target !== SquareContents.Empty)//targetGem  is not an empty space)
                 {
                     if((target.matches(getBoardSquare(squaresCopy, x+1, y))) && (target.matches(getBoardSquare(squaresCopy, x+2, y))) )
                     {
@@ -519,20 +559,20 @@ GameBoard.prototype = {
                         matchSets[matchSets.length] = matchSet;
                     }
                 }
-                if(target != SquareContents.Empty)
+                if(target !== SquareContents.Empty)
                 {
                     if( (target.matches(getBoardSquare(squaresCopy, x, y+1))) && (target.matches(getBoardSquare(squaresCopy, x, y+2))) )
                     {
-                        var matchSet = new MatchSet(targetGem.type);//matchSet is new MatchSet
+                        var verticalMatchSet = new MatchSet(targetGem.type);//matchSet is new MatchSet
                         var yOffset = 0;
                         while(target.matches(getBoardSquare(squaresCopy, x, y+yOffset)))
                         {
-                            matchSet.gems[matchSet.gems.length] = squaresCopy[x][y+yOffset];//add gem at x, y+yOffset to matchSet's combinationSet
+                            verticalMatchSet.gems[verticalMatchSet.gems.length] = squaresCopy[x][y+yOffset];//add gem at x, y+yOffset to matchSet's combinationSet
                             squaresCopy[x][y+yOffset]= SquareContents.Empty;
                             yOffset++;
-                            matchSet.numGems++;
+                            verticalMatchSet.numGems++;
                         }
-                        matchSets[matchSets.length] = matchSet;
+                        matchSets[matchSets.length] = verticalMatchSet;
                     }
                 }
             }
@@ -543,11 +583,12 @@ GameBoard.prototype = {
     {
         var fallingGems = []; //list of falling gems
         var squaresCopy = this.squares.slice(0);
-        for(var x = 0; x<BOARD_WIDTH; x++)
+        var x,y;
+        for(x = 0; x<BOARD_WIDTH; x++)
         {
-            for(var y = BOARD_HEIGHT-2; y>=0; y++)//start at the 2nd to the bottom row
+            for(y = BOARD_HEIGHT-2; y>=0; y++)//start at the 2nd to the bottom row
             {
-                if(squaresCopy[x][y]!= SquareContents.Empty && squaresCopy[x][y-1]===SquareContents.Empty)//this square not empty but one below it is
+                if(squaresCopy[x][y]!== SquareContents.Empty && squaresCopy[x][y-1]===SquareContents.Empty)//this square not empty but one below it is
                 {
                     fallingGems[fallingGems.length] = squaresCopy[x][y];
                     squaresCopy[x][y] = SquareContents.Empty;
@@ -559,10 +600,11 @@ GameBoard.prototype = {
     findEmptyColumns: function()//Performed after the falling gems have been found & have fallen, used to fill found columns
     {
         var emptySpacesPerColumn = [BOARD_WIDTH];//array of numbers of empty spaces per column, ie if [0] = 5, column 0 has 5 empty spaces
-        for(var x = 0; x < BOARD_WIDTH; x++)
+        var x,y;
+        for(x = 0; x < BOARD_WIDTH; x++)
         {
             emptySpacesPerColumn[x] = 0;
-            for(var y = 0; y < BOARD_HEIGHT; y++)
+            for(y = 0; y < BOARD_HEIGHT; y++)
             {
                 if(this.squares[x][y] === SquareContents.Empty)
                 {
@@ -583,9 +625,10 @@ GameBoard.prototype = {
             [[0,0],[0,2],[0,3]],
             [[0,0],[0,1],[0,3]]
         ];
-        for(var x = 0; x < BOARD_WIDTH; x++)
+        var x,y;
+        for(x = 0; x < BOARD_WIDTH; x++)
         {
-            for(var y = 0; y < BOARD_HEIGHT; y++)
+            for(y = 0; y < BOARD_HEIGHT; y++)
             {
                 for(pat in switchPatterns)
                 {
@@ -626,12 +669,14 @@ if (!!(window.addEventListener)) {
 
 function loadFiles()
 {
+    console.log("Loading files");
     queue = new createjs.LoadQueue(true, "assets/");
     queue.on("complete", loadComplete, this);
     queue.loadManifest(manifest);
 }
 function loadComplete(evt)
 {
+    console.log("done oading files");
     titleScreen = new createjs.Bitmap(queue.getResult("titleScreen"));
     instructionScreen = new createjs.Bitmap(queue.getResult("instructionScreen"));
     gameplayScreen = new createjs.Bitmap(queue.getResult("gameplayScreen"));
@@ -675,12 +720,17 @@ function loadComplete(evt)
         });
     
     walkingSprite = new createjs.Sprite(walkSheet);
-    
+    console.log("Setup game objects");
     setupGameObjects();
+    console.log("Setup Buttons");
     setupButtons();
+    console.log("Setup Title screen");
     setupTitleScreen();
+    console.log("Setup game over screen");
     setupGameOverScreen();
+    console.log("Setup game play screen");
     setupGameplayScreen();
+    console.log("Setup instruction screen");
     setupInstructionScreen();
     mouseCoordText = new createjs.Text("X: \nY: ", "12px Arial", "#ffffff");
     mouseCoordText.x = 20;
@@ -715,12 +765,17 @@ function setupButtons()
 }
 function setupGameObjects()
 {
+    console.log("p1 class");
     var p1Class = new Class1();
+    console.log("p2 class");
     var p2Class = new Class1();
+    console.log("player 1");
     player1 = new Player(p1Class);
+    console.log("player 2");
     player2 = new Player(p2Class);
-    
+    console.log("new board");
     board = new GameBoard();
+    console.log("fill board");
     board.fill();
 }
 //endregion
@@ -814,8 +869,8 @@ function gameStateAction()
         case GameStates.gamePlay:
             if(!playingLevelIntro)
             {
-                runGameTimer();
-                walkingSprite.x +=1;
+                //runGameTimer();
+                //walkingSprite.x +=1;
                 gameTimeText.text = "" + gameTimer.toFixed();
                 if(gameTimer >= gameTimerLimit)
                 {
@@ -865,7 +920,77 @@ function gameStateSwitch()
 }
 
 //endregion
-/*---------------------------Title Screen---------------------------*/
+/*----------------------------Game Play----------------------------*/
+//region gameplay
+function handleGemClick(evt, data)
+{
+    var clickedGem = data.gem;
+    //highlight the clicked gem
+    if(selectedGem1 === null)
+    {
+        selectedGem1 = clickedGem;
+    }
+    else
+    {
+        selectedGem2 = clickedGem;
+        handleMove();
+    }
+}
+function swapGems(gemA, gemB)
+{
+    squares[gemA.x][gemA.y] = gemB;
+    squares[gemB.x][gemB.y] = gemA;
+    var tempX = gemA.x;
+    var tempY = gemA.y;
+    gemA.x = gemB.x;
+    gemA.y = gemB.y;
+    gemB.x = tempX;
+    gemB.y = tempY;
+    var newACoords = getSquareDisplayCoords(gemA.x, gemA.y);
+    var newBCoords = getSquareDisplayCoords(gemB.x, gemB.y);
+    moveGem(gemA, newACoords.x, newACoords.y);
+    moveGem(gemB, newBCoords.x, newBCoords.y);
+}
+function handleMove()
+{
+    if(gemsAreAdjacent(selectedGem1, selectedGem2))
+    {
+        swapGems(selectedGem1, selectedGem2);
+        var matchSets = board.findGemMatches();
+        if(matchSets.length >0)
+        {
+            matchedGemsToBreak = length;
+            var matchSet;
+            for(matchSet in matchSets)
+            {
+                var gem;
+                for(gem in matchSet)
+                {
+                    shatterGem(gem);
+                }
+            }
+        }
+        else
+        {
+            swapGems(selectedGem1, selectedGem2);
+            //un-highlight gems, play 'no match' noise
+        }
+    }
+    else
+    {
+        //un-highlight gems, play 'you fail at this' noise
+    }
+}
+function matchedGemBroken()
+{
+    matchedGemsToBreak -= 1;
+    if(matchedGemsToBreak===0)
+    {
+        
+    }
+}
+//endregion
+/*---------------------------Title Screen Setup---------------------------*/
 //region Title
 function setupTitleScreen()
 {
@@ -889,7 +1014,7 @@ function resetTitle()
     btnInstruct.y = (canvasHeight/2)+50;
 }
 //endregion
-/*---------------------------Instructions---------------------------*/
+/*---------------------------Instructions Setup---------------------------*/
 //region Title
 function setupInstructionScreen()
 {
@@ -902,7 +1027,7 @@ function setupInstructionScreen()
     instructionContainer.visible = false;
 }
 //endregion
-/*----------------------------Game Play----------------------------*/
+/*----------------------------Game Play Setup----------------------------*/
 //region Title
 function setupGameplayScreen()
 {
@@ -918,10 +1043,15 @@ function setupGameplayScreen()
     walkingSprite.y=530;
     //walk.gotoAndPlay("walkRight");
     
+    board.container.x = (canvasWidth/2)-(board.width/2);
+    board.container.y = (canvasHeight/2)-(board.height/2);
+
+    
     setupLevelDisplay();
     
     gameplayContainer = new createjs.Container();
-    gameplayContainer.addChild(gameplayScreen, gameTimeText, gameScoreText, walkingSprite, levelDisplayContainer);
+    //gameplayContainer.addChild(gameplayScreen, gameTimeText, gameScoreText, walkingSprite, levelDisplayContainer, board.container);
+    gameplayContainer.addChild(gameplayScreen, gameScoreText, levelDisplayContainer, board.container);
     stage.addChild(gameplayContainer);
     gameplayContainer.visible = false;
 }
@@ -969,7 +1099,7 @@ function levelTweenComplete()
     walkingSprite.gotoAndPlay("walkRight");
 }
 //endregion
-/*----------------------------Game Over----------------------------*/
+/*----------------------------Game Over Setup----------------------------*/
 //region Title
 function setupGameOverScreen()
 {
