@@ -23,7 +23,7 @@ var BOARD_SQUARE_SPACING = 5;
 var GEM_HEIGHT = BOARD_SQUARE_HEIGHT;
 var GEM_WIDTH = BOARD_SQUARE_WIDTH;
 
-var RAINBOW_GEM_CHANCE = 0.05;
+var RAINBOW_GEM_CHANCE = 0.01;
 
 var JModeActive = false;
 var JModeAdd = 10;
@@ -122,7 +122,14 @@ Gem.prototype = {
         var match = false;
         if(otherGem instanceof Gem)
         {
-            match =  (this.type === otherGem.type);
+            if(otherGem.type === GemTypes.Rainbow)
+            {
+                match = true;
+            }
+            else
+            {
+                match =  (this.type === otherGem.type);
+            }
         }
         return match;
     },
@@ -215,7 +222,6 @@ function shatterGem(gem, currPlayer)
     board.squares[gem.x][gem.y] = SquareContents.Empty;
     gemTween = createjs.Tween.get(gem.image, {loop:false})
         .to({rotation:360}, 1500, createjs.Ease.bounceOut)
-        .wait(500)
         .to({y:canvasHeight+200, rotation:0}, 1000, createjs.Ease.backIn)
         .call(gem.shatter, [currPlayer])
         .call(matchedGemBroken);
@@ -1482,7 +1488,6 @@ function executePower(evt, data)
         console.log("not current player");
     }
 }
-
 function otherPlayerTurn()
 {
     if(currentPlayer === player1)
@@ -1572,8 +1577,22 @@ function swapComplete()
             for(var j = 0; j < matchSets.length; j++)
             {
                 var matchSet = matchSets[j];
+                var setType = null;
+                var g = 0;
+                while(setType === null && g<matchSet.gems.length)
+                {
+                    if(matchSet.gems[g].type !== GemTypes.Rainbow)
+                    {
+                        setType = matchSet.gems[g].type;
+                    }
+                    g++;
+                }
                 for(var i = 0; i < matchSet.gems.length; i++)
                 {
+                    if(matchSet.gems[i].type === GemTypes.Rainbow)
+                    {
+                        matchSet.gems[i].type = setType;
+                    }
                     shatterGem(matchSet.gems[i],currentPlayer);
                 }
             }
