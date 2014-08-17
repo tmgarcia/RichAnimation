@@ -11,10 +11,10 @@ var BOARD_FRAME_HEIGHT = 5;
 var BOARD_SQUARE_WIDTH = 25;
 var BOARD_SQUARE_HEIGHT = 25;
 var BOARD_SQUARE_SPACING = 5;
-var RAINBOW_GEM_CHANCE = 0.1;
+var RAINBOW_GEM_CHANCE = 0.05;
 
 var selectedGem1, selectedGem2;
-var matchedGemsToBreak;
+var matchedGemsToBreak, waitingForSwap, waitingForMatchBreaks, waitingForDrop,lastDrop;
 var player1, player2, currentPlayer;
 var board;
 
@@ -106,15 +106,63 @@ Gem.prototype = {
     shatter: function(player) {
         //abstract
     },
+    highlight: function()
+    {
+        this.image.regX = BOARD_SQUARE_WIDTH/2;
+        this.image.regY = BOARD_SQUARE_HEIGHT/2;
+        this.image.x = this.image.x+(BOARD_SQUARE_WIDTH/2);
+        this.image.y = this.image.y+(BOARD_SQUARE_HEIGHT/2);
+        highlight = createjs.Tween.get(this.image, {loop:true, override:true})
+        .to({rotation:360}, 1500);
+    },
+    unhighlight: function()
+    {
+        console.log("UNHIGHLIGHT");
+        createjs.Tween.removeTweens(this.image);
+        this.image.regX = 0;
+        this.image.regY = 0;
+        this.image.x = this.image.x-(BOARD_SQUARE_WIDTH/2);
+        this.image.y = this.image.y-(BOARD_SQUARE_HEIGHT/2);
+        this.image.rotation = 0;
+    },
     setupImage: function()
     {
-        
     }
 };
+function resetGemPosition(gem)
+{
+    createjs.Tween.removeTweens(gem.image);
+    if(gem.image.regX !== 0 && gem.image.regY !==0)
+    {
+        gem.image.regX = 0;
+        gem.image.regY = 0;
+    }
+    var properCoords = getSquareDisplayCoords(gem.x, gem.y);
+    gem.image.x = properCoords.x;
+    gem.image.y = properCoords.y;
+    gem.image.rotation = 0;
+}
 function moveGem(gem, newX, newY)
 {
-    moveTween = createjs.Tween.get(gem.image, {loop:false})
-    .to({x:newX, y:newY}, 500, createjs.Ease.bounceOut);
+    if(waitingForSwap)
+    {
+        moveTween = createjs.Tween.get(gem.image, {loop:false, override:true})
+        .to({x:newX, y:newY}, 500, createjs.Ease.bounceOut)
+        .wait(500)
+        .call(swapComplete);
+    }
+    else if(waitingForDrop)
+    {
+        moveTween = createjs.Tween.get(gem.image, {loop:false, override:true})
+        .to({x:newX, y:newY}, 500, createjs.Ease.bounceOut)
+        .wait(500)
+        .call(dropsComplete);
+    }
+    else
+    {
+        moveTween = createjs.Tween.get(gem.image, {loop:false, override:true})
+        .to({x:newX, y:newY}, 500, createjs.Ease.bounceOut);
+    }
     //animate moving of gem
 }
 function gemsAreAdjacent(gemA, gemB)
@@ -129,7 +177,14 @@ function gemsAreAdjacent(gemA, gemB)
 }
 function shatterGem(gem)
 {
-    console.log("shattering gem");
+    resetGemPosition(gem);
+    if(gem.image.regX === 0 && gem.image.regY === 0)
+    {
+        gem.image.regX = BOARD_SQUARE_WIDTH/2;
+        gem.image.regY = BOARD_SQUARE_HEIGHT/2;
+        gem.image.x = gem.image.x+(BOARD_SQUARE_WIDTH/2);
+        gem.image.y = gem.image.y+(BOARD_SQUARE_HEIGHT/2);
+    }
     board.squares[gem.x][gem.y] = SquareContents.Empty;
     gemTween = createjs.Tween.get(gem.image, {loop:false})
         .to({rotation:360}, 1500, createjs.Ease.bounceOut)
@@ -146,6 +201,7 @@ function shatterGem(gem)
     RedGem.prototype = {
         shatter: function(player){
             this.image.visible = false;
+            board.container.removeChild(this.image);
             //animate breaking
             //give player red gem
         },
@@ -165,6 +221,7 @@ function shatterGem(gem)
     YellowGem.prototype = {
         shatter: function(player){
             this.image.visible = false;
+            board.container.removeChild(this.image);
             //animate breaking
             //give player yellow gem
         },
@@ -184,6 +241,7 @@ function shatterGem(gem)
     GreenGem.prototype = {
         shatter: function(player){
             this.image.visible = false;
+            board.container.removeChild(this.image);
             //animate breaking
             //give player yellow gem
         },
@@ -203,6 +261,7 @@ function shatterGem(gem)
     BlueGem.prototype = {
         shatter: function(player){
             this.image.visible = false;
+            board.container.removeChild(this.image);
             //animate breaking
             //give player Blue gem
         },
@@ -222,6 +281,7 @@ function shatterGem(gem)
     PurpleGem.prototype = {
         shatter: function(player){
             this.image.visible = false;
+            board.container.removeChild(this.image);
             //animate breaking
             //give player Purple gem
         },
@@ -241,6 +301,7 @@ function shatterGem(gem)
     RockGem.prototype = {
         shatter: function(player){
             this.image.visible = false;
+            board.container.removeChild(this.image);
             //animate breaking
             //give player Rock gem
         },
@@ -260,6 +321,7 @@ function shatterGem(gem)
     DamageGem.prototype = {
         shatter: function(player){
             this.image.visible = false;
+            board.container.removeChild(this.image);
             //animate breaking
             //hurt other player
         },
@@ -279,6 +341,7 @@ function shatterGem(gem)
     RainbowGem.prototype = {
         shatter: function(player){
             this.image.visible = false;
+            board.container.removeChild(this.image);
             //animate breaking
             //give player correct gem (pass type?)
         },
@@ -358,6 +421,10 @@ function Power(cost)
 Power.prototype = {
     execute: function(){
         //execute power
+    },
+    reset: function()
+    {
+        this.cost.clearFulfilledGems();
     }
 };
 //endregion
@@ -368,6 +435,15 @@ function PlayerClass(power1, power2, power3, power4)
     this.power2 = power2;
     this.power3 = power3;
     this.power4 = power4;
+}
+PlayerClass.prototype= {
+    reset: function()
+    {
+        this.power1.reset();
+        this.power2.reset();
+        this.power3.reset();
+        this.power4.reset();
+    }
 }
     //region Class 1 
         //region Power1 
@@ -459,6 +535,15 @@ Inventory.prototype = {
             case GemTypes.Purple: this.PurpleGems+=1; break;
             case GemTypes.Rock: this.RockGems+=1; break;
         }
+    },
+    reset: function()
+    {
+        this.RedGems = 0;
+        this.YellowGems = 0;
+        this.GreenGems = 0;
+        this.BlueGems = 0;
+        this.PurpleGems = 0;
+        this.RockGems = 0;
     }
 };
 function Player(playerClass)
@@ -472,6 +557,11 @@ Player.prototype = {
     {
         this.health -= amount;
         //do something if health <= 0
+    },
+    reset: function()
+    {
+        this.inventory.reset();
+        this.playerClass.reset();
     }
 };
 //endregion
@@ -556,7 +646,6 @@ GameBoard.prototype = {
                             xOffset++;
                             matchSet.numGems++; //matchSet's number of gems ++
                         }
-                        console.log(matchSet.gems.length);
                         matchSets[matchSets.length] = matchSet;
                     }
                 }
@@ -587,9 +676,9 @@ GameBoard.prototype = {
         var x,y;
         for(x = 0; x<BOARD_WIDTH; x++)
         {
-            for(y = BOARD_HEIGHT-2; y>=0; y++)//start at the 2nd to the bottom row
+            for(y = BOARD_HEIGHT-2; y>=0; y--)//start at the 2nd to the bottom row
             {
-                if(squaresCopy[x][y]!== SquareContents.Empty && squaresCopy[x][y-1]===SquareContents.Empty)//this square not empty but one below it is
+                if(squaresCopy[x][y]!== SquareContents.Empty && squaresCopy[x][y+1]===SquareContents.Empty)//this square not empty but one below it is
                 {
                     fallingGems[fallingGems.length] = squaresCopy[x][y];
                     squaresCopy[x][y] = SquareContents.Empty;
@@ -600,7 +689,7 @@ GameBoard.prototype = {
     },
     findEmptyColumns: function()//Performed after the falling gems have been found & have fallen, used to fill found columns
     {
-        var emptySpacesPerColumn = [BOARD_WIDTH];//array of numbers of empty spaces per column, ie if [0] = 5, column 0 has 5 empty spaces
+        var emptySpacesPerColumn = new Array(BOARD_WIDTH);//array of numbers of empty spaces per column, ie if [0] = 5, column 0 has 5 empty spaces
         var x,y;
         for(x = 0; x < BOARD_WIDTH; x++)
         {
@@ -613,6 +702,7 @@ GameBoard.prototype = {
                 }
             }
         }
+        return emptySpacesPerColumn;
     },
     movesExist: function()//check that there are still possible matches existing on board
     {
@@ -721,17 +811,11 @@ function loadComplete(evt)
         });
     
     walkingSprite = new createjs.Sprite(walkSheet);
-    console.log("Setup game objects");
     setupGameObjects();
-    console.log("Setup Buttons");
     setupButtons();
-    console.log("Setup Title screen");
     setupTitleScreen();
-    console.log("Setup game over screen");
     setupGameOverScreen();
-    console.log("Setup game play screen");
     setupGameplayScreen();
-    console.log("Setup instruction screen");
     setupInstructionScreen();
     mouseCoordText = new createjs.Text("X: \nY: ", "12px Arial", "#ffffff");
     mouseCoordText.x = 20;
@@ -771,9 +855,17 @@ function setupGameObjects()
     player1 = new Player(p1Class);
     player2 = new Player(p2Class);
     board = new GameBoard();
-    board.fill();
+    //board.fill();
     selectedGem1 = null;
     selectedGem2 = null;
+}
+function resetGameObjects()
+{
+    player1.reset();
+    player2.reset();
+    selectedGem1 = null;
+    selectedGem2 = null;
+    board.fill();
 }
 //endregion
 /*----------------------------Main Loop----------------------------*/
@@ -926,10 +1018,12 @@ function handleGemClick(evt, data)
     if(selectedGem1 === null)
     {
         selectedGem1 = clickedGem;
+        clickedGem.highlight();
     }
-    else
+    else if(selectedGem2 === null)
     {
         selectedGem2 = clickedGem;
+        //clickedGem.highlight();
         handleMove();
     }
 }
@@ -945,25 +1039,47 @@ function swapGems(gemA, gemB)
     gemB.y = tempY;
     var newACoords = getSquareDisplayCoords(gemA.x, gemA.y);
     var newBCoords = getSquareDisplayCoords(gemB.x, gemB.y);
-    moveGem(gemA, newACoords.x, newACoords.y);
-    moveGem(gemB, newBCoords.x, newBCoords.y);
+    if(waitingForSwap)
+    {
+        waitingForSwap = false;
+        moveGem(gemA, newACoords.x, newACoords.y);
+        waitingForSwap = true;
+        moveGem(gemB, newBCoords.x, newBCoords.y);
+    }
+    else
+    {
+        moveGem(gemA, newACoords.x, newACoords.y);
+        moveGem(gemB, newBCoords.x, newBCoords.y);
+    }
 }
 function handleMove()
 {
     if(gemsAreAdjacent(selectedGem1, selectedGem2))
     {
+        selectedGem1.unhighlight();
+        waitingForSwap = true;
         swapGems(selectedGem1, selectedGem2);
+    }
+    else
+    {
+        selectedGem1.unhighlight();
+        //selectedGem2.unhighlight();
+        //un-highlight gems, play 'you fail at this' noise
+    }
+}
+function swapComplete()
+{
+    if(waitingForSwap)
+    {
+        waitingForSwap = false;
         var matchSets = board.findGemMatches();
-        console.log("match sets: " + matchSets.length);
         if(matchSets.length >0)
         {
-            console.log("match sets: " + matchSets.length);
-            matchedGemsToBreak = length;
+            matchedGemsToBreak = matchSets.length;
+            waitingForMatchBreaks = true;
             for(var j = 0; j < matchSets.length; j++)
             {
                 var matchSet = matchSets[j];
-                console.log("match set length: " + matchSet.gems.length);
-                console.log(matchSet.gems.valueOf());
                 for(var i = 0; i < matchSet.gems.length; i++)
                 {
                     shatterGem(matchSet.gems[i]);
@@ -973,21 +1089,80 @@ function handleMove()
         else
         {
             swapGems(selectedGem1, selectedGem2);
-            //un-highlight gems, play 'no match' noise
         }
-    }
-    else
-    {
-        //un-highlight gems, play 'you fail at this' noise
     }
 }
 function matchedGemBroken()
 {
-    console.log("matched gem broken " + matchedGemsToBreak);
     matchedGemsToBreak -= 1;
     if(matchedGemsToBreak===0)
     {
-        
+        var fallingGems = board.findFallingGems();
+        if(fallingGems.length>0)
+        {
+            waitingForDrop = true;
+            while(fallingGems.length >0)
+            {
+                for(var i = 0; i < fallingGems.length; i++)
+                {
+                    var gem = fallingGems[i];
+                    board.squares[gem.x][gem.y] = SquareContents.Empty;
+                    board.squares[gem.x][gem.y+1] = gem;
+                    gem.y = gem.y+1;
+                    var newCoords = getSquareDisplayCoords(gem.x, gem.y);
+                    moveGem(gem, newCoords.x, newCoords.y);
+                }
+                fallingGems = board.findFallingGems();
+            }
+            lastDrop = true;
+        }
+        else
+        {
+            waitingForDrop = false;
+            lastDrop = true;
+            dropsComplete();
+        }
+    }
+}
+function dropsComplete()
+{
+    if(lastDrop)
+    {
+        lastDrop = false;
+        waitingForDrop = false;
+        var emptySpaces = board.findEmptyColumns();
+        for(var x = 0; x < emptySpaces.length; x++)
+        {
+            for(var y = 0; y < emptySpaces[x]; y++)
+            {
+                var newGem = getRandomGem(x, y);
+                board.squares[x][y] = newGem;
+                var coords = getSquareDisplayCoords(x,y);
+                newGem.image.x = coords.x;
+                newGem.image.y = coords.y-100;
+                board.container.addChild(newGem.image);
+                moveGem(newGem, coords.x, coords.y);
+            }
+        }
+        var matchSets = board.findGemMatches();
+        if(matchSets.length >0)
+        {
+            matchedGemsToBreak = matchSets.length;
+            waitingForMatchBreaks = true;
+            for(var j = 0; j < matchSets.length; j++)
+            {
+                var matchSet = matchSets[j];
+                for(var i = 0; i < matchSet.gems.length; i++)
+                {
+                    shatterGem(matchSet.gems[i]);
+                }
+            }
+        }
+        else
+        {
+            selectedGem1 = null;
+            selectedGem2 = null;
+        }
     }
 }
 //endregion
@@ -1047,12 +1222,11 @@ function setupGameplayScreen()
     board.container.x = (canvasWidth/2)-(board.width/2);
     board.container.y = (canvasHeight/2)-(board.height/2);
 
-    
-    setupLevelDisplay();
+    //setupLevelDisplay();
     
     gameplayContainer = new createjs.Container();
     //gameplayContainer.addChild(gameplayScreen, gameTimeText, gameScoreText, walkingSprite, levelDisplayContainer, board.container);
-    gameplayContainer.addChild(gameplayScreen, gameScoreText, levelDisplayContainer, board.container);
+    gameplayContainer.addChild(gameplayScreen, gameScoreText, board.container);
     stage.addChild(gameplayContainer);
     gameplayContainer.visible = false;
 }
@@ -1074,30 +1248,7 @@ function startGameplay()
 {
     resetGameTimer();
     gameScore = 0;
-    walkingSprite.x=10;
-    levelDisplayContainer.regX = levelDisplayContainer.getBounds().width/2;
-    levelDisplayContainer.regY = levelDisplayContainer.getBounds().height/2;
-    levelDisplayContainer.x = 0;
-    levelDisplayContainer.y = -canvasHeight;
-    levelDisplayContainer.visible = true;
-    tweenLevel();
-}
-var levelTween;
-function tweenLevel()
-{
-    playingLevelIntro = true;
-    levelTween = createjs.Tween.get(levelDisplayContainer, {loop:false})
-        .wait(500)
-        .to({x:0, y:0, rotation:0}, 2000, createjs.Ease.bounceOut)
-        .wait(500)
-        .to({y:canvasHeight+200, rotation:0}, 1000, createjs.Ease.backIn)
-        .call(levelTweenComplete);
-}
-function levelTweenComplete()
-{
-    playingLevelIntro = false;
-    levelDisplayContainer.visible = false;
-    walkingSprite.gotoAndPlay("walkRight");
+    
 }
 //endregion
 /*----------------------------Game Over Setup----------------------------*/
