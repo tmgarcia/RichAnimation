@@ -4,6 +4,11 @@ document.onkeydown = handleKeyDown;
 document.onkeyup = handleKeyUp;
 
 var BASE_PLAYER_HEALTH = 100;
+var HEALTH_BAR_WIDTH = 25;
+var HEALTH_BAR_HEIGHT = 250;
+var HEALTH_BAR_PADDING = 3;
+var PLAYER_DISPLAY_WIDTH = 150;
+
 var BOARD_WIDTH = 10;//in squares
 var BOARD_HEIGHT = 10;//in squares
 var BOARD_FRAME_WIDTH = 5;
@@ -11,7 +16,12 @@ var BOARD_FRAME_HEIGHT = 5;
 var BOARD_SQUARE_WIDTH = 25;
 var BOARD_SQUARE_HEIGHT = 25;
 var BOARD_SQUARE_SPACING = 5;
+var GEM_HEIGHT = BOARD_SQUARE_HEIGHT;
+var GEM_WIDTH = BOARD_SQUARE_WIDTH;
+
 var RAINBOW_GEM_CHANCE = 0.05;
+
+var allLoadingComplete;
 
 var selectedGem1, selectedGem2;
 var matchedGemsToBreak, waitingForSwap, waitingForMatchBreaks, waitingForDrop,lastDrop;
@@ -30,6 +40,8 @@ var KC_D = 68;
 
 var KC_SPACE = 32;
 var KC_SHIFT = 16;
+
+var SCREEN_PADDING = 50;
 
 var canvasWidth = 800;
 var canvasHeight = 600;
@@ -528,22 +540,74 @@ Inventory.prototype = {
     {
         switch(gemType)
         {
-            case GemTypes.Red: this.RedGems+=1; break;
-            case GemTypes.Yellow: this.YellowGems+=1; break;
-            case GemTypes.Green: this.GreenGems+=1; break;
-            case GemTypes.Blue: this.BlueGems+=1; break;
-            case GemTypes.Purple: this.PurpleGems+=1; break;
-            case GemTypes.Rock: this.RockGems+=1; break;
+            case GemTypes.Red: this.RedGems+=1; this.redAmt.text = ""+this.RedGems; break;
+            case GemTypes.Yellow: this.YellowGems+=1; this.yellowAmt.text = ""+this.YellowGems; break;
+            case GemTypes.Green: this.GreenGems+=1; this.greenAmt.text = ""+this.GreenGems; break;
+            case GemTypes.Blue: this.BlueGems+=1; this.blueAmt.text = ""+this.BlueGems; break;
+            case GemTypes.Purple: this.PurpleGems+=1; this.purpleAmt.text = ""+this.PurpleGems; break;
+            case GemTypes.Rock: this.RockGems+=1; this.rockAmt.text = ""+this.RockGems; break;
         }
     },
     reset: function()
     {
         this.RedGems = 0;
+        this.redAmt.text = ""+0;
         this.YellowGems = 0;
+        this.yellowAmt.text = ""+0;
         this.GreenGems = 0;
+        this.greenAmt.text = ""+0;
         this.BlueGems = 0;
+        this.blueAmt.text = ""+0;
         this.PurpleGems = 0;
+        this.purpleAmt.text = ""+0;
         this.RockGems = 0;
+        this.rockAmt.text = ""+0;
+    },
+    setupDisplay: function(onLeft)
+    {
+        this.container = new createjs.Container();
+        var imagePad = 5;
+        var imageX = 0;
+        var textPad = GEM_WIDTH + 10;
+        if(!onLeft)
+        {
+            imageX = textPad;
+            textPad = 0;
+        }
+        this.redImage = new createjs.Bitmap(queue.getResult("gemRed"));
+        this.redImage.x = imageX;
+        this.redAmt = new createjs.Text("0", "12px Arial", "#ffffff");
+        this.redAmt.x = textPad;
+        this.yellowImage = new createjs.Bitmap(queue.getResult("gemYellow"));
+        this.yellowImage.x = imageX;
+        this.yellowImage.y = GEM_HEIGHT + imagePad;
+        this.yellowAmt = new createjs.Text("0", "12px Arial", "#ffffff");
+        this.yellowAmt.x = textPad;
+        this.yellowAmt.y = this.yellowImage.y;
+        this.greenImage = new createjs.Bitmap(queue.getResult("gemGreen"));
+        this.greenImage.x = imageX;
+        this.greenImage.y = 2*(GEM_HEIGHT + imagePad);
+        this.greenAmt = new createjs.Text("0", "12px Arial", "#ffffff");
+        this.greenAmt.x = textPad;
+        this.greenAmt.y = this.greenImage.y;
+        this.blueImage = new createjs.Bitmap(queue.getResult("gemBlue"));
+        this.blueImage.y = 3*(GEM_HEIGHT + imagePad);
+        this.blueImage.x = imageX;
+        this.blueAmt = new createjs.Text("0", "12px Arial", "#ffffff");
+        this.blueAmt.x = textPad;
+        this.blueAmt.y = this.blueImage.y;
+        this.purpleImage = new createjs.Bitmap(queue.getResult("gemPurple"));
+        this.purpleImage.y = 4*(GEM_HEIGHT + imagePad);
+        this.purpleImage.x = imageX;
+        this.purpleAmt = new createjs.Text("0", "12px Arial", "#ffffff");
+        this.purpleAmt.x = textPad;
+        this.purpleAmt.y = this.purpleImage.y;
+        this.rockImage = new createjs.Bitmap(queue.getResult("gemRock"));
+        this.rockImage.y = 5*(GEM_HEIGHT + imagePad);
+        this.rockImage.x = imageX;
+        this.rockAmt = new createjs.Text("0", "12px Arial", "#ffffff");
+        this.rockAmt.x = textPad;
+        this.rockAmt.y = this.rockImage.y;  this.container.addChild(this.redImage,this.redAmt,this.yellowImage,this.yellowAmt,this.greenImage,this.greenAmt,this.blueImage,this.blueAmt,this.purpleImage,this.purpleAmt,this.rockImage,this.rockAmt);
     }
 };
 function Player(playerClass)
@@ -556,12 +620,47 @@ Player.prototype = {
     decreaseHealth: function(amount)
     {
         this.health -= amount;
+        this.updateHealthBar();
         //do something if health <= 0
     },
     reset: function()
     {
         this.inventory.reset();
         this.playerClass.reset();
+        this.updateHealthBar();
+    },
+    updateHealthBar: function()
+    {
+        this.healthBar.scaleY = -((this.health/BASE_PLAYER_HEALTH)*HEALTH_BAR_HEIGHT);
+    },
+    setupHealthBar: function()
+    {
+        this.healthBarContainer = new createjs.Container();
+        this.healthBar = new createjs.Shape();
+        this.healthBar.graphics.beginFill("#F00").drawRect(0,0,HEALTH_BAR_WIDTH,1).endFill();
+        this.healthBar.y = HEALTH_BAR_HEIGHT;
+        this.healthFrame = new createjs.Shape();
+        var padding = HEALTH_BAR_PADDING;
+        this.healthFrame.graphics.setStrokeStyle(1).beginStroke("#F00").drawRect(-padding/2, -HEALTH_BAR_PADDING/2, HEALTH_BAR_WIDTH+padding, HEALTH_BAR_HEIGHT+padding);
+        this.healthBarContainer.addChild(this.healthBar, this.healthFrame);
+        //position health bar container and add to player container
+    },
+    setupDisplay: function(isOnLeft)
+    {
+        this.container = new createjs.Container();
+        this.setupHealthBar();
+        this.updateHealthBar();
+        //this.healthBarContainer.y = 50;
+        this.inventory.setupDisplay(isOnLeft);
+        if(isOnLeft)
+        {
+            this.healthBarContainer.x = (PLAYER_DISPLAY_WIDTH - (HEALTH_BAR_WIDTH + (2*HEALTH_BAR_PADDING)));
+        }
+        else
+        {
+            this.inventory.container.x = PLAYER_DISPLAY_WIDTH - 50;
+        }
+        this.container.addChild(this.healthBarContainer, this.inventory.container);
     }
 };
 //endregion
@@ -767,7 +866,7 @@ function loadFiles()
 }
 function loadComplete(evt)
 {
-    console.log("done oading files");
+    console.log("done loading files");
     titleScreen = new createjs.Bitmap(queue.getResult("titleScreen"));
     instructionScreen = new createjs.Bitmap(queue.getResult("instructionScreen"));
     gameplayScreen = new createjs.Bitmap(queue.getResult("gameplayScreen"));
@@ -811,16 +910,21 @@ function loadComplete(evt)
         });
     
     walkingSprite = new createjs.Sprite(walkSheet);
+    console.log("Setup game objects");
     setupGameObjects();
+    console.log("Setup buttons");
     setupButtons();
+    console.log("Setup title screen");
     setupTitleScreen();
+    console.log("Setup game over screen");
     setupGameOverScreen();
     setupGameplayScreen();
     setupInstructionScreen();
     mouseCoordText = new createjs.Text("X: \nY: ", "12px Arial", "#ffffff");
     mouseCoordText.x = 20;
     mouseCoordText.y = canvasHeight-50;
-    stage.addChild(mouseCoordText);
+    //stage.addChild(mouseCoordText);
+    allLoadingComplete = true;
 }
 function setupButtons()
 {
@@ -853,7 +957,12 @@ function setupGameObjects()
     var p1Class = new Class1();
     var p2Class = new Class1();
     player1 = new Player(p1Class);
+    console.log("Setup player 1 display");
+    player1.setupDisplay(true);
     player2 = new Player(p2Class);
+    console.log("Setup player 2 display");
+    player2.setupDisplay(false);
+    console.log("New board");
     board = new GameBoard();
     //board.fill();
     selectedGem1 = null;
@@ -872,14 +981,18 @@ function resetGameObjects()
 //region Main
 function loop()
 {
-    mouseCoordText.text = "X: " + mouseX +"\nY: " + mouseY;
-    gameStateAction();
-    stage.update();
+    //mouseCoordText.text = "X: " + mouseX +"\nY: " + mouseY;
+    if(allLoadingComplete)
+    {
+        gameStateAction();
+        stage.update();
+    }
 }
 
 function main()
 {
     setupCanvas();
+    allLoadingComplete = false;
     loadFiles();
     gameState = GameStates.gameTitle;
     frameCount = 0;
@@ -1221,12 +1334,16 @@ function setupGameplayScreen()
     
     board.container.x = (canvasWidth/2)-(board.width/2);
     board.container.y = (canvasHeight/2)-(board.height/2);
-
+    
+    player1.container.x = SCREEN_PADDING;
+    player1.container.y = SCREEN_PADDING;
+    player2.container.x = (canvasWidth-PLAYER_DISPLAY_WIDTH)-SCREEN_PADDING;
+    player2.container.y = SCREEN_PADDING;
     //setupLevelDisplay();
     
     gameplayContainer = new createjs.Container();
     //gameplayContainer.addChild(gameplayScreen, gameTimeText, gameScoreText, walkingSprite, levelDisplayContainer, board.container);
-    gameplayContainer.addChild(gameplayScreen, gameScoreText, board.container);
+    gameplayContainer.addChild(gameplayScreen, gameScoreText, board.container, player1.container, player2.container);
     stage.addChild(gameplayContainer);
     gameplayContainer.visible = false;
 }
@@ -1248,7 +1365,7 @@ function startGameplay()
 {
     resetGameTimer();
     gameScore = 0;
-    
+    resetGameObjects();
 }
 //endregion
 /*----------------------------Game Over Setup----------------------------*/
