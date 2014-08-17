@@ -1333,7 +1333,8 @@ function setupGameplayScreen()
     //walk.gotoAndPlay("walkRight");
     
     board.container.x = (canvasWidth/2)-(board.width/2);
-    board.container.y = (canvasHeight/2)-(board.height/2);
+    //board.container.y = (canvasHeight/2)-(board.height/2);
+    board.container.y = SCREEN_PADDING;
     
     player1.container.x = SCREEN_PADDING;
     player1.container.y = SCREEN_PADDING;
@@ -1343,7 +1344,7 @@ function setupGameplayScreen()
     
     gameplayContainer = new createjs.Container();
     //gameplayContainer.addChild(gameplayScreen, gameTimeText, gameScoreText, walkingSprite, levelDisplayContainer, board.container);
-    gameplayContainer.addChild(gameplayScreen, gameScoreText, board.container, player1.container, player2.container);
+    gameplayContainer.addChild(gameplayScreen, board.container, player1.container, player2.container);
     stage.addChild(gameplayContainer);
     gameplayContainer.visible = false;
 }
