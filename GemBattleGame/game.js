@@ -230,6 +230,7 @@ function shatterGem(gem, currPlayer)
         gem.image.x = gem.image.x+(BOARD_SQUARE_WIDTH/2);
         gem.image.y = gem.image.y+(BOARD_SQUARE_HEIGHT/2);
     }
+    board.container.setChildIndex(gem.image, board.container.children.length-1);
     board.squares[gem.x][gem.y] = SquareContents.Empty;
     gemTween = createjs.Tween.get(gem.image, {loop:false})
         .call(playShatter)
@@ -242,7 +243,7 @@ function playShatter()
 {
     if(!initialBoardFill)
     {
-        createjs.Sound.play("shatterSound",createjs.Sound.INTERRUPT_ANY,0,0,0);
+        createjs.Sound.play("shatterSound",createjs.Sound.INTERRUPT_ANY,0,0,0,0.2);
     }
 }
     //region Red 
@@ -1236,7 +1237,7 @@ function loadComplete(evt)
     mouseCoordText.x = 20;
     mouseCoordText.y = canvasHeight-50;
     //stage.addChild(mouseCoordText);
-    musicInstance = createjs.Sound.play("musicLoop",createjs.Sound.INTERRUPT_NONE,0,0,-1);
+    musicInstance = createjs.Sound.play("musicLoop",createjs.Sound.INTERRUPT_NONE,0,0,-1,0.5);
     console.log("mus duration " + musicInstance.getDuration());
     allLoadingComplete = true;
 }
