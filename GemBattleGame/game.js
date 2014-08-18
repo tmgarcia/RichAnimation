@@ -26,6 +26,8 @@ var GEM_WIDTH = BOARD_SQUARE_WIDTH;
 
 var initialBoardFill;
 
+var musicInstance;
+
 var RAINBOW_GEM_CHANCE = 0.01;
 
 var JModeActive = false;
@@ -92,9 +94,11 @@ manifest = [
     {src:"powerBase.png", id:"powerBase"},
     {src:"powerBaseDimmed.png", id:"powerBaseDimmed"},
     {src:"noCostSlot.png", id:"noCostSlot"},
-    {src:"loadingSwirl.png", id:"loadingSwirl"}
+    {src:"loadingSwirl.png", id:"loadingSwirl"},
+    {src:"shatterSound.ogg", id:"shatterSound", data:4},
+    {src:"musicLoop.wav", id:"musicLoop"}
 ];
-
+var audioPath = "Assets/";
 /*------------------------------Objects------------------------------*/
 //region Objects 
 function extend(base, sub) {
@@ -228,10 +232,18 @@ function shatterGem(gem, currPlayer)
     }
     board.squares[gem.x][gem.y] = SquareContents.Empty;
     gemTween = createjs.Tween.get(gem.image, {loop:false})
+        .call(playShatter)
         .to({rotation:360}, 1500, createjs.Ease.bounceOut)
         .to({y:canvasHeight+200, rotation:0}, 1000, createjs.Ease.backIn)
         .call(gem.shatter, [currPlayer])
         .call(matchedGemBroken);
+}
+function playShatter()
+{
+    if(!initialBoardFill)
+    {
+        createjs.Sound.play("shatterSound",createjs.Sound.INTERRUPT_ANY,0,0,0);
+    }
 }
     //region Red 
     function RedGem(x, y)
@@ -1158,7 +1170,9 @@ if (!!(window.addEventListener)) {
 function loadFiles()
 {
     console.log("Loading files");
-    queue = new createjs.LoadQueue(true, "assets/");
+    queue = new createjs.LoadQueue(true, "Assets/");
+    createjs.Sound.alternateExtensions = ["mp3"];
+    queue.installPlugin(createjs.Sound);
     queue.on("complete", loadComplete, this);
     queue.loadManifest(manifest);
 }
@@ -1222,6 +1236,8 @@ function loadComplete(evt)
     mouseCoordText.x = 20;
     mouseCoordText.y = canvasHeight-50;
     //stage.addChild(mouseCoordText);
+    musicInstance = createjs.Sound.play("musicLoop",createjs.Sound.INTERRUPT_NONE,0,0,-1);
+    console.log("mus duration " + musicInstance.getDuration());
     allLoadingComplete = true;
 }
 function setupButtons()
