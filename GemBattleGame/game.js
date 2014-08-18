@@ -710,7 +710,7 @@ PlayerClass.prototype= {
                     var numBlue = otherPlayer.inventory.BlueGems;
                     otherPlayer.inventory.modifyGemAmount(GemTypes.Red, numBlue);
                     otherPlayer.inventory.modifyGemAmount(GemTypes.Blue, numRed);
-                    otherPlayer.playerClass.updatePowers(this.inventory.RedGems, this.inventory.YellowGems,this.inventory.GreenGems,this.inventory.BlueGems,this.inventory.PurpleGems);
+                    otherPlayer.playerClass.updatePowers(otherPlayer.inventory.RedGems, otherPlayer.inventory.YellowGems,otherPlayer.inventory.GreenGems,otherPlayer.inventory.BlueGems,otherPlayer.inventory.PurpleGems);
                     otherPlayerTurn();
                 }
             };
