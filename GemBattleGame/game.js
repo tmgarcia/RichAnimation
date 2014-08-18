@@ -24,12 +24,17 @@ var BOARD_SQUARE_SPACING = 5;
 var GEM_HEIGHT = BOARD_SQUARE_HEIGHT;
 var GEM_WIDTH = BOARD_SQUARE_WIDTH;
 
+var initialBoardFill;
+
 var RAINBOW_GEM_CHANCE = 0.01;
 
 var JModeActive = false;
 var JModeAdd = 10;
 
+var endMessage;
+
 var allLoadingComplete;
+var loadingSwirl, loadingText;
 
 var selectedGem1, selectedGem2;
 var matchedGemsToBreak, waitingForSwap, waitingForMatchBreaks, waitingForDrop,lastDrop;
@@ -86,7 +91,8 @@ manifest = [
     {src:"gemRainbow.png", id:"gemRainbow"},
     {src:"powerBase.png", id:"powerBase"},
     {src:"powerBaseDimmed.png", id:"powerBaseDimmed"},
-    {src:"noCostSlot.png", id:"noCostSlot"}
+    {src:"noCostSlot.png", id:"noCostSlot"},
+    {src:"loadingSwirl.png", id:"loadingSwirl"}
 ];
 
 /*------------------------------Objects------------------------------*/
@@ -854,6 +860,7 @@ Player.prototype = {
     },
     reset: function()
     {
+        this.health = BASE_PLAYER_HEALTH;
         this.inventory.reset();
         this.playerClass.reset();
         this.updateHealthBar();
@@ -949,6 +956,7 @@ function GameBoard()
     this.height = (BOARD_FRAME_HEIGHT*2)+(BOARD_HEIGHT*BOARD_SQUARE_HEIGHT)+((BOARD_HEIGHT-1)*BOARD_SQUARE_SPACING);
     this.image = new createjs.Rectangle(0,0,this.width, this.height);
     this.container = new createjs.Container();
+    this.fillPreviously = false;
     //this.container.addChild(this.image);
 }
 GameBoard.prototype = {
@@ -960,11 +968,27 @@ GameBoard.prototype = {
             for(y = 0; y < BOARD_HEIGHT; y++)
             {
                 this.squares[x][y] = getRandomGem(x, y);
-                
                 var coords = getSquareDisplayCoords(x, y);
                 this.squares[x][y].image.x = coords.x;
                 this.squares[x][y].image.y = coords.y;
                 this.container.addChild(this.squares[x][y].image);
+            }
+        }
+        this.fillPreviously = true;
+    },
+    empty: function()
+    {
+        if(this.fillPreviously)
+        {
+            for(var x = 0; x < BOARD_WIDTH; x++)
+            {
+                for(var y = 0; y < BOARD_HEIGHT; y++)
+                {
+                    var oldGem = this.squares[x][y];
+                    oldGem.image.visible = false;
+                    this.container.removeChild(oldGem.image);
+                    this.squares[x][y] = SquareContents.Empty;
+                }
             }
         }
     },
@@ -1245,15 +1269,22 @@ function setupGameObjects()
 }
 function resetGameObjects()
 {
+    JModeActive = false;
     player1.reset();
     player2.reset();
     selectedGem1 = null;
     selectedGem2 = null;
+    board.empty();
     board.fill();
     currentPlayerText.x = SCREEN_PADDING + (PLAYER_DISPLAY_WIDTH/2);
     currentPlayerText.y = 10;
     currentPlayer = null;
-    
+    initialBoardFill = true;
+    loadingText.visible = true;
+    loadingSwirl.visible = true;
+    swirl = createjs.Tween.get(loadingSwirl, {loop:true, override:true})
+        .to({rotation:360}, 1500);
+    board.container.visible = false;
     var matchSets = board.findGemMatches();
     if(matchSets.length >0)
     {
@@ -1270,6 +1301,11 @@ function resetGameObjects()
     }
     else
     {
+        initialBoardFill = false;
+        loadingText.visible = false;
+        createjs.Tween.removeTweens(loadingSwirl);
+        loadingSwirl.visible = false;
+        board.container.visible = true;
         currentPlayer = player1;
     }
 }
@@ -1367,16 +1403,15 @@ function gameStateAction()
             
         break;
         case GameStates.gamePlay:
-            if(!playingLevelIntro)
+            if(player1.health <= 0)
             {
-                //runGameTimer();
-                //walkingSprite.x +=1;
-                gameTimeText.text = "" + gameTimer.toFixed();
-                if(gameTimer >= gameTimerLimit)
-                {
-                    gameState = GameStates.gameOver;
-                    walkingSprite.stop();
-                }
+                gameState = GameStates.gameOver;
+                finalScoreText.text = "Player 2 Wins!"
+            }
+            else if(player2.health <= 0)
+            {
+                gameState = GameStates.gameOver;
+                finalScoreText.text = "Player 1 Wins!"
             }
         break;
         case GameStates.gameInstructions:
@@ -1391,7 +1426,6 @@ function gameStateSwitch()
     switch(gameState)
     {
         case GameStates.gameOver:
-            finalScoreText = "Score: " +gameScoreText;
             titleContainer.visible = false;
             instructionContainer.visible = false;
             gameplayContainer.visible = false;
@@ -1689,6 +1723,14 @@ function dropsComplete()
         }
         else
         {
+            if(initialBoardFill)
+            {
+                initialBoardFill = false;
+                loadingText.visible = false;
+                createjs.Tween.removeTweens(loadingSwirl);
+                loadingSwirl.visible = false;
+                board.container.visible = true;
+            }
             otherPlayerTurn();
             selectedGem1 = null;
             selectedGem2 = null;
@@ -1738,15 +1780,25 @@ function setupInstructionScreen()
 function setupGameplayScreen()
 {
     gameTimeText = new createjs.Text("10", "50px Arial", "#ffffff");
-    gameTimeText.x = canvasWidth - 80;
-    gameTimeText.y = 50;
+    //gameTimeText.x = canvasWidth - 80;
+    //gameTimeText.y = 50;
     
     gameScoreText = new createjs.Text("0", "50px Arial", "#ffffff");
-    gameScoreText.x = 50;
-    gameScoreText.y = 50;
+    //gameScoreText.x = 50;
+    //gameScoreText.y = 50;
+    loadingText = new createjs.Text("Loading New Board", "40px Arial", "#ccc");
+    loadingText.textAlign = "center";
+    loadingText.x = canvasWidth/2;
+    loadingText.y = canvasHeight/2;
     
-    walkingSprite.x=10;
-    walkingSprite.y=530;
+    loadingSwirl = new createjs.Bitmap(queue.getResult("loadingSwirl"));
+    loadingSwirl.regX = 100;
+    loadingSwirl.regY = 100;
+    loadingSwirl.x = canvasWidth/2;
+    loadingSwirl.y = canvasHeight/2;
+    
+    //walkingSprite.x=10;
+   // walkingSprite.y=530;
     //walk.gotoAndPlay("walkRight");
     
     board.container.x = (canvasWidth/2)-(board.width/2);
@@ -1761,7 +1813,7 @@ function setupGameplayScreen()
     
     gameplayContainer = new createjs.Container();
     //gameplayContainer.addChild(gameplayScreen, gameTimeText, gameScoreText, walkingSprite, levelDisplayContainer, board.container);
-    gameplayContainer.addChild(gameplayScreen, board.container, player1.container, player2.container, currentPlayerText);
+    gameplayContainer.addChild(gameplayScreen, board.container, player1.container, player2.container, currentPlayerText,loadingSwirl,loadingText);
     stage.addChild(gameplayContainer);
     gameplayContainer.visible = false;
 }
