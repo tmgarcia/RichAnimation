@@ -30,6 +30,8 @@ var musicInstance;
 
 var RAINBOW_GEM_CHANCE = 0.01;
 
+var gemRed, gemYellow, gemGreen, gemBlue, gemPurple, gemRainbow, gemRock, gemDamage, placeholder;
+
 var JModeActive = false;
 var JModeAdd = 10;
 
@@ -65,7 +67,6 @@ var stage;
 var FPS = 30;
 var btnPlay, btnInstruct, btnMenu, btnContinue;
 var playingLevelIntro;
-var walkingSprite;
 var titleScreen, instructionScreen, gameplayScreen, gameOverScreen, levelSign;
 var titleContainer, instructionContainer, gameplayContainer, gameOverContainer, levelDisplayContainer;
 var gameState;
@@ -81,7 +82,6 @@ manifest = [
     {src:"gameOverScreen.jpg", id:"gameOverScreen"},
     {src:"gameplayArea.jpg", id:"gameplayScreen"},
     {src:"buttons.png", id:"button"},
-    {src:"sprites.png", id:"walkingSprites"},
     {src:"levelSign.png", id:"levelSign"},
     {src:"gemRed.png", id:"gemRed"},
     {src:"gemYellow.png", id:"gemYellow"},
@@ -89,8 +89,16 @@ manifest = [
     {src:"gemBlue.png", id:"gemBlue"},
     {src:"gemPurple.png", id:"gemPurple"},
     {src:"gemRock.png", id:"gemRock"},
-    {src:"gemDamage.png", id:"gemDamage"},
     {src:"gemRainbow.png", id:"gemRainbow"},
+    {src:"gemDamage.png", id:"gemDamage"},
+    {src:"gemSheetRed.png", id:"redGemSheet"},
+    {src:"gemSheetYellow.png", id:"yellowGemSheet"},
+    {src:"gemSheetGreen.png", id:"greenGemSheet"},
+    {src:"gemSheetBlue.png", id:"blueGemSheet"},
+    {src:"gemSheetPurple.png", id:"purpleGemSheet"},
+    {src:"gemSheetRock.png", id:"rockGemSheet"},
+    {src:"gemSheetDamage.png", id:"damageGemSheet"},
+    {src:"gemSheetRainbow.png", id:"rainbowGemSheet"},
     {src:"powerBase.png", id:"powerBase"},
     {src:"powerBaseDimmed.png", id:"powerBaseDimmed"},
     {src:"noCostSlot.png", id:"noCostSlot"},
@@ -149,22 +157,24 @@ Gem.prototype = {
     },
     highlight: function()
     {
-        this.image.regX = BOARD_SQUARE_WIDTH/2;
-        this.image.regY = BOARD_SQUARE_HEIGHT/2;
-        this.image.x = this.image.x+(BOARD_SQUARE_WIDTH/2);
-        this.image.y = this.image.y+(BOARD_SQUARE_HEIGHT/2);
-        highlight = createjs.Tween.get(this.image, {loop:true, override:true})
-        .to({rotation:360}, 1500);
+//        this.image.regX = BOARD_SQUARE_WIDTH/2;
+//        this.image.regY = BOARD_SQUARE_HEIGHT/2;
+//        this.image.x = this.image.x+(BOARD_SQUARE_WIDTH/2);
+//        this.image.y = this.image.y+(BOARD_SQUARE_HEIGHT/2);
+//        highlight = createjs.Tween.get(this.image, {loop:true, override:true})
+//        .to({rotation:360}, 1500);
+        this.image.gotoAndPlay("shine");
     },
     unhighlight: function()
     {
-        console.log("UNHIGHLIGHT");
-        createjs.Tween.removeTweens(this.image);
-        this.image.regX = 0;
-        this.image.regY = 0;
-        this.image.x = this.image.x-(BOARD_SQUARE_WIDTH/2);
-        this.image.y = this.image.y-(BOARD_SQUARE_HEIGHT/2);
-        this.image.rotation = 0;
+//        console.log("UNHIGHLIGHT");
+//        createjs.Tween.removeTweens(this.image);
+//        this.image.regX = 0;
+//        this.image.regY = 0;
+//        this.image.x = this.image.x-(BOARD_SQUARE_WIDTH/2);
+//        this.image.y = this.image.y-(BOARD_SQUARE_HEIGHT/2);
+//        this.image.rotation = 0;
+        this.image.gotoAndStop("loiter");
     },
     setupImage: function()
     {
@@ -172,6 +182,7 @@ Gem.prototype = {
 };
 function resetGemPosition(gem)
 {
+    gem.image.stop;
     createjs.Tween.removeTweens(gem.image);
     if(gem.image.regX !== 0 && gem.image.regY !==0)
     {
@@ -218,6 +229,7 @@ function gemsAreAdjacent(gemA, gemB)
 }
 function shatterGem(gem, currPlayer)
 {
+    console.log("shatter");
     if(currPlayer === undefined)
     {
         currPlayer = null;
@@ -232,12 +244,22 @@ function shatterGem(gem, currPlayer)
     }
     board.container.setChildIndex(gem.image, board.container.children.length-1);
     board.squares[gem.x][gem.y] = SquareContents.Empty;
-    gemTween = createjs.Tween.get(gem.image, {loop:false})
+    console.log("sprite shatter");
+    gem.image.gotoAndPlay("shatter");
+    console.log("gem.image: " + gem.image);
+    console.log("tween shatter");
+    gemTween = createjs.Tween.get(placeholder, {loop:false})
         .call(playShatter)
-        .to({rotation:360}, 1500, createjs.Ease.bounceOut)
-        .to({y:canvasHeight+200, rotation:0}, 1000, createjs.Ease.backIn)
+        .wait(1000)
+        .call(stopGem, [gem])
         .call(gem.shatter, [currPlayer])
         .call(matchedGemBroken);
+}
+function stopGem(gem)
+{
+    gem.image.stop();
+    gem.visible = false;
+    board.container.removeChild(gem.image);
 }
 function playShatter()
 {
@@ -253,19 +275,26 @@ function playShatter()
     }
     RedGem.prototype = {
         shatter: function(player){
-            this.image.visible = false;
+            console.log("red shatter");
+            console.log("this: " + this);
+            console.log("set image invisible");
+            //this.visible = false;
+            //this.stop();
+            console.log("remove from board");
             board.container.removeChild(this.image);
             if(player !== null && player!== undefined)
             {
                 player.addGemsToInventory(GemTypes.Red, 1);
             }
-            //animate breaking
-            //give player red gem
+            console.log("end red shatter");
         },
         setupImage: function()
         {
-            this.image = new createjs.Bitmap(queue.getResult("gemRed"));
+            console.log("setup image start");
+            this.image = gemRed.clone();
+            this.image.gotoAndStop("loiter");
             this.image.on("click", handleGemClick, null, false, {gem:this});
+            console.log("setup image end");
         }
     };
     extend(Gem, RedGem);
@@ -277,18 +306,26 @@ function playShatter()
     }
     YellowGem.prototype = {
         shatter: function(player){
-            this.image.visible = false;
+            console.log("yellow shatter");
+            console.log("this: " + this);
+            console.log("this.image: " + this.image);
+            console.log("set image invisible");
+            //this.visible = false;
+            //this.stop();
+            console.log("remove from board");
             board.container.removeChild(this.image);
             if(player !== null && player!== undefined)
             {
                 player.addGemsToInventory(GemTypes.Yellow, 1);
             }
+            console.log("end yellow shatter");
             //animate breaking
             //give player yellow gem
         },
         setupImage: function()
         {
-            this.image = new createjs.Bitmap(queue.getResult("gemYellow"));
+            this.image = gemYellow.clone();
+            this.image.gotoAndStop("loiter");
             this.image.on("click", handleGemClick, null, false, {gem:this});
         }
     };
@@ -301,7 +338,7 @@ function playShatter()
     }
     GreenGem.prototype = {
         shatter: function(player){
-            this.image.visible = false;
+            this.visible = false;
             board.container.removeChild(this.image);
             if(player !== null && player!== undefined)
             {
@@ -312,7 +349,8 @@ function playShatter()
         },
         setupImage: function()
         {
-            this.image = new createjs.Bitmap(queue.getResult("gemGreen"));
+            this.image = gemGreen.clone();
+            this.image.gotoAndStop("loiter");
             this.image.on("click", handleGemClick, null, false, {gem:this});
         }
     };
@@ -325,7 +363,8 @@ function playShatter()
     }
     BlueGem.prototype = {
         shatter: function(player){
-            this.image.visible = false;
+            //this.stop();
+            //this.visible = false;
             board.container.removeChild(this.image);
             if(player !== null && player!== undefined)
             {
@@ -336,7 +375,8 @@ function playShatter()
         },
         setupImage: function()
         {
-            this.image = new createjs.Bitmap(queue.getResult("gemBlue"));
+            this.image = gemBlue.clone();
+            this.image.gotoAndStop("loiter");
             this.image.on("click", handleGemClick, null, false, {gem:this});
         }
     };
@@ -349,7 +389,8 @@ function playShatter()
     }
     PurpleGem.prototype = {
         shatter: function(player){
-            this.image.visible = false;
+            //this.stop();
+            //this.visible = false;
             board.container.removeChild(this.image);
             if(player !== null && player!== undefined)
             {
@@ -360,7 +401,8 @@ function playShatter()
         },
         setupImage: function()
         {
-            this.image = new createjs.Bitmap(queue.getResult("gemPurple"));
+            this.image = gemPurple.clone();
+            this.image.gotoAndStop("loiter");
             this.image.on("click", handleGemClick, null, false, {gem:this});
         }
     };
@@ -373,7 +415,8 @@ function playShatter()
     }
     RockGem.prototype = {
         shatter: function(player){
-            this.image.visible = false;
+            //this.stop();
+            //this.visible = false;
             board.container.removeChild(this.image);
             if(player !== null && player!== undefined)
             {
@@ -384,7 +427,8 @@ function playShatter()
         },
         setupImage: function()
         {
-            this.image = new createjs.Bitmap(queue.getResult("gemRock"));
+            this.image = gemRock.clone();
+            this.image.gotoAndStop("loiter");
             this.image.on("click", handleGemClick, null, false, {gem:this});
         }
     };
@@ -397,7 +441,8 @@ function playShatter()
     }
     DamageGem.prototype = {
         shatter: function(player){
-            this.image.visible = false;
+            //this.stop();
+            //this.visible = false;
             board.container.removeChild(this.image);
             if(player !== null)
             {
@@ -415,7 +460,8 @@ function playShatter()
         },
         setupImage: function()
         {
-            this.image = new createjs.Bitmap(queue.getResult("gemDamage"));
+            this.image = gemDamage.clone();
+            this.image.gotoAndStop("loiter");
             this.image.on("click", handleGemClick, null, false, {gem:this});
         }
     };
@@ -428,14 +474,16 @@ function playShatter()
     }
     RainbowGem.prototype = {
         shatter: function(player){
-            this.image.visible = false;
+            //this.stop();
+            //this.visible = false;
             board.container.removeChild(this.image);
             //animate breaking
             //give player correct gem (pass type?)
         },
         setupImage: function()
         {
-            this.image = new createjs.Bitmap(queue.getResult("gemRainbow"));
+            this.image = gemRainbow.clone();
+            this.image.gotoAndStop("loiter");
             this.image.on("click", handleGemClick, null, false, {gem:this});
         }
     };
@@ -1209,21 +1257,91 @@ function loadComplete(evt)
     btnMenu = new createjs.Sprite(buttonSheet);
     btnContinue = new createjs.Sprite(buttonSheet);
     
-    var walkSheet = new createjs.SpriteSheet({
-        images: [queue.getResult("walkingSprites")],
-        frames: [[160,0,19,49,0,10.05,48.6],[179,0,34,44,0,17.05,43.6],[213,0,22,46,0,9.05,45.6],[235,0,17,49,0,8.05,48.6],[0,49,25,49,0,10.05,48.6],[25,49,31,46,0,14.05,45.6],[56,49,33,44,0,16.05,43.6],
-                 [89,49,30,44,0,17.05,43.6],[119,49,28,46,0,17.05,45.6],[147,49,19,49,0,10.05,48.6],[166,49,23,49,0,14.05,48.6],[189,49,31,46,0,16.05,45.6],[220,49,34,44,0,17.05,43.6],[0,98,19,49,0,9.05,48.6],
-                 [19,98,34,44,0,17.05,43.6],[53,98,22,46,0,13.05,45.6],[75,98,17,49,0,9.05,48.6],[92,98,25,49,0,15.05,48.6],[117,98,31,46,0,17.05,45.6],[148,98,33,44,0,17.05,43.6],[181,98,30,44,0,13.05,43.6],
-                 [211,98,28,46,0,11.05,45.6],[0,147,19,49,0,9.05,48.6],[19,147,23,49,0,9.05,48.6],[42,147,31,46,0,15.05,45.6],[73,147,34,44,0,17.05,43.6]],
-        animations: {
-            standRight: [0, 0, "standRight"],
-            walkRight: [1, 12, "walkRight", .5],
-            standLeft: [13, 13, "standLeft"],
-            walkLeft: [14, 25, "walkLeft", .5]
-            }     
-        });
+    var redGemSheet = new createjs.SpriteSheet({
+        images: [queue.getResult("redGemSheet")],
+        frames: [[0,0,70,68,0,31.45,28.25],[70,0,70,68,0,31.45,28.25],[140,0,70,68,0,31.45,28.25],[0,68,70,68,0,31.45,28.25],[70,68,70,68,0,31.45,28.25],[140,68,70,68,0,31.45,28.25],[0,136,70,68,0,31.45,28.25],
+                 [70,136,70,68,0,31.45,28.25],[140,136,70,68,0,31.45,28.25],[0,204,70,68,0,31.45,28.25],[70,204,70,68,0,31.45,28.25],[140,204,70,68,0,31.45,28.25],[0,272,70,68,0,31.45,28.25],[70,272,70,68,0,31.45,28.25],
+                 [140,272,70,68,0,31.45,28.25],[0,340,70,68,0,31.45,28.25],[70,340,70,68,0,31.45,28.25],[140,340,70,68,0,31.45,28.25],[0,408,70,68,0,31.45,28.25],[70,408,70,68,0,31.45,28.25],[140,408,70,68,0,31.45,28.25]],
+        animations:{
+            loiter: [0, 0, "loiter"],
+            shine: [1, 5, "shine", .5],
+            shatter: [1, 19, "shatter", .5]
+        }
+    });
+    var yellowGemSheet = new createjs.SpriteSheet({
+        images: [queue.getResult("yellowGemSheet")],
+        frames: [[0,0,88,91,0,41.9,44.3],[88,0,88,91,0,41.9,44.3],[176,0,88,91,0,41.9,44.3],[264,0,88,91,0,41.9,44.3],[352,0,88,91,0,41.9,44.3],[0,91,88,91,0,41.9,44.3],[88,91,88,91,0,41.9,44.3],[176,91,88,91,0,41.9,44.3],[264,91,88,91,0,41.9,44.3],[352,91,88,91,0,41.9,44.3],[0,182,88,91,0,41.9,44.3],[88,182,88,91,0,41.9,44.3],[176,182,88,91,0,41.9,44.3],[264,182,88,91,0,41.9,44.3],[352,182,88,91,0,41.9,44.3],[0,273,88,91,0,41.9,44.3],[88,273,88,91,0,41.9,44.3],[176,273,88,91,0,41.9,44.3],[264,273,88,91,0,41.9,44.3],[352,273,88,91,0,41.9,44.3]],
+        animations:{
+            loiter: [0, 0, "loiter"],
+            shine: [1, 5, "shine", .5],
+            shatter: [1, 19, "shatter", .5]
+        }
+    });
+    var greenGemSheet = new createjs.SpriteSheet({
+        images: [queue.getResult("greenGemSheet")],
+        frames: [[0,0,83,84,0,41.55,35.8],[83,0,83,84,0,41.55,35.8],[166,0,83,84,0,41.55,35.8],[249,0,83,84,0,41.55,35.8],[332,0,83,84,0,41.55,35.8],[415,0,83,84,0,41.55,35.8],[0,84,83,84,0,41.55,35.8],[83,84,83,84,0,41.55,35.8],[166,84,83,84,0,41.55,35.8],[249,84,83,84,0,41.55,35.8],[332,84,83,84,0,41.55,35.8],[415,84,83,84,0,41.55,35.8],[0,168,83,84,0,41.55,35.8],[83,168,83,84,0,41.55,35.8],[166,168,83,84,0,41.55,35.8],[249,168,83,84,0,41.55,35.8],[332,168,83,84,0,41.55,35.8],[415,168,83,84,0,41.55,35.8],[0,252,83,84,0,41.55,35.8],[83,252,83,84,0,41.55,35.8],[166,252,83,84,0,41.55,35.8]],
+        animations:{
+            loiter: [0, 0, "loiter"],
+            shine: [1, 5, "shine", .5],
+            shatter: [1, 19, "shatter", .5]
+        }
+    });
+    var blueGemSheet = new createjs.SpriteSheet({
+        images: [queue.getResult("blueGemSheet")],
+        frames: [[0,0,111,109,0,55.3,49.05],[111,0,111,109,0,55.3,49.05],[222,0,111,109,0,55.3,49.05],[333,0,111,109,0,55.3,49.05],[0,109,111,109,0,55.3,49.05],[111,109,111,109,0,55.3,49.05],[222,109,111,109,0,55.3,49.05],[333,109,111,109,0,55.3,49.05],[0,218,111,109,0,55.3,49.05],[111,218,111,109,0,55.3,49.05],[222,218,111,109,0,55.3,49.05],[333,218,111,109,0,55.3,49.05],[0,327,111,109,0,55.3,49.05],[111,327,111,109,0,55.3,49.05],[222,327,111,109,0,55.3,49.05],[333,327,111,109,0,55.3,49.05],[0,436,111,109,0,55.3,49.05],[111,436,111,109,0,55.3,49.05],[222,436,111,109,0,55.3,49.05],[333,436,111,109,0,55.3,49.05]],
+        animations:{
+            loiter: [0, 0, "loiter"],
+            shine: [1, 5, "shine", .5],
+            shatter: [1, 19, "shatter", .5]
+        }
+    });
+    var purpleGemSheet = new createjs.SpriteSheet({
+        images: [queue.getResult("purpleGemSheet")],
+        frames: [[0,0,72,59,0,37.6,27.75],[72,0,72,59,0,37.6,27.75],[144,0,72,59,0,37.6,27.75],[0,59,72,59,0,37.6,27.75],[72,59,72,59,0,37.6,27.75],[144,59,72,59,0,37.6,27.75],[0,118,72,59,0,37.6,27.75],[72,118,72,59,0,37.6,27.75],[144,118,72,59,0,37.6,27.75],[0,177,72,59,0,37.6,27.75],[72,177,72,59,0,37.6,27.75],[144,177,72,59,0,37.6,27.75],[0,236,72,59,0,37.6,27.75],[72,236,72,59,0,37.6,27.75],[144,236,72,59,0,37.6,27.75],[0,295,72,59,0,37.6,27.75],[72,295,72,59,0,37.6,27.75],[144,295,72,59,0,37.6,27.75],[0,354,72,59,0,37.6,27.75],[72,354,72,59,0,37.6,27.75],[144,354,72,59,0,37.6,27.75]],
+        animations:{
+            loiter: [0, 0, "loiter"],
+            shine: [1, 6, "shine", .5],
+            shatter: [1, 19, "shatter", .5]
+        }
+    });
+    var rainbowGemSheet = new createjs.SpriteSheet({
+        images: [queue.getResult("rainbowGemSheet")],
+        frames: [[0,0,117,126,0,58.1,58.5],[117,0,117,126,0,58.1,58.5],[234,0,117,126,0,58.1,58.5],[351,0,117,126,0,58.1,58.5],[0,126,117,126,0,58.1,58.5],[117,126,117,126,0,58.1,58.5],[234,126,117,126,0,58.1,58.5],[351,126,117,126,0,58.1,58.5],[0,252,117,126,0,58.1,58.5],[117,252,117,126,0,58.1,58.5],[234,252,117,126,0,58.1,58.5],[351,252,117,126,0,58.1,58.5],[0,378,117,126,0,58.1,58.5],[117,378,117,126,0,58.1,58.5],[234,378,117,126,0,58.1,58.5],[351,378,117,126,0,58.1,58.5],[0,504,117,126,0,58.1,58.5],[117,504,117,126,0,58.1,58.5],[234,504,117,126,0,58.1,58.5],[351,504,117,126,0,58.1,58.5],[0,630,117,126,0,58.1,58.5]],
+        animations:{
+            loiter: [0, 0, "loiter"],
+            shine: [1, 5, "shine", .5],
+            shatter: [1, 19, "shatter", .5]
+        }
+    });  
+    var rockGemSheet = new createjs.SpriteSheet({
+        images: [queue.getResult("rockGemSheet")],
+        frames: [[0,0,48,37,0,22.95,17.35],[48,0,48,37,0,22.95,17.35],[96,0,48,37,0,22.95,17.35],[144,0,48,37,0,22.95,17.35],[192,0,48,37,0,22.95,17.35],[0,37,48,37,0,22.95,17.35],[48,37,48,37,0,22.95,17.35],[96,37,48,37,0,22.95,17.35],[144,37,48,37,0,22.95,17.35],[192,37,48,37,0,22.95,17.35],[0,74,48,37,0,22.95,17.35],[48,74,48,37,0,22.95,17.35],[96,74,48,37,0,22.95,17.35],[144,74,48,37,0,22.95,17.35],[192,74,48,37,0,22.95,17.35],[0,111,48,37,0,22.95,17.35],[48,111,48,37,0,22.95,17.35],[96,111,48,37,0,22.95,17.35],[144,111,48,37,0,22.95,17.35],[192,111,48,37,0,22.95,17.35],[0,148,48,37,0,22.95,17.35]],
+        animations:{
+            loiter: [0, 0, "loiter"],
+            shine: [0, 4, "shine", .5],
+            shatter: [1, 18, "shatter", .5]
+        }
+    }); 
+    var damageGemSheet = new createjs.SpriteSheet({
+        images: [queue.getResult("damageGemSheet")],
+        frames: [[0,0,66,60,0,34.45,26.8],[66,0,66,60,0,34.45,26.8],[132,0,66,60,0,34.45,26.8],[0,60,66,60,0,34.45,26.8],[66,60,66,60,0,34.45,26.8],[132,60,66,60,0,34.45,26.8],[0,120,66,60,0,34.45,26.8],[66,120,66,60,0,34.45,26.8],[132,120,66,60,0,34.45,26.8],[0,180,66,60,0,34.45,26.8],[66,180,66,60,0,34.45,26.8],[132,180,66,60,0,34.45,26.8],[0,240,66,60,0,34.45,26.8],[66,240,66,60,0,34.45,26.8],[132,240,66,60,0,34.45,26.8],[0,300,66,60,0,34.45,26.8],[66,300,66,60,0,34.45,26.8],[132,300,66,60,0,34.45,26.8],[0,360,66,60,0,34.45,26.8],[66,360,66,60,0,34.45,26.8],[132,360,66,60,0,34.45,26.8]],
+        animations:{
+            loiter: [0, 0, "loiter"],
+            shine: [1, 5, "shine", .5],
+            shatter: [1, 17, "shatter", .5]
+        }
+    });   
     
-    walkingSprite = new createjs.Sprite(walkSheet);
+    gemRed = new createjs.Sprite(redGemSheet);
+    gemYellow = new createjs.Sprite(yellowGemSheet);
+    gemGreen = new createjs.Sprite(greenGemSheet);
+    gemBlue = new createjs.Sprite(blueGemSheet);
+    gemPurple = new createjs.Sprite(purpleGemSheet);
+    gemRock = new createjs.Sprite(rockGemSheet);
+    gemDamage = new createjs.Sprite(damageGemSheet);
+    gemRainbow = new createjs.Sprite(rainbowGemSheet);
+    placeholder = new createjs.Sprite(redGemSheet);
+    
     console.log("Setup game objects");
     setupGameObjects();
     console.log("Setup buttons");
@@ -1302,7 +1420,7 @@ function resetGameObjects()
     loadingSwirl.visible = true;
     swirl = createjs.Tween.get(loadingSwirl, {loop:true, override:true})
         .to({rotation:360}, 1500);
-    board.container.visible = false;
+    //board.container.visible = false;
     var matchSets = board.findGemMatches();
     if(matchSets.length >0)
     {
@@ -1815,11 +1933,7 @@ function setupGameplayScreen()
     loadingSwirl.x = canvasWidth/2;
     loadingSwirl.y = canvasHeight/2;
     
-    //walkingSprite.x=10;
-   // walkingSprite.y=530;
-    //walk.gotoAndPlay("walkRight");
-    
-    board.container.x = (canvasWidth/2)-(board.width/2);
+    board.container.x = (canvasWidth/2)-(board.width/2)+10;
     //board.container.y = (canvasHeight/2)-(board.height/2);
     board.container.y = SCREEN_PADDING;
     
